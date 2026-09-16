@@ -80,7 +80,7 @@ export default function Sidebar({ activePage, setActivePage, open, onClose, cale
         <div className="group relative mt-[14px] flex items-center gap-[9px] border-t border-white/[.07] px-[7px] pt-[14px]">
           <div className="grid size-8 shrink-0 place-items-center rounded-[9px] bg-gradient-to-br from-[#2d3d5b] to-[#202c43] text-[9px] font-bold text-[#b9c5d9] ring-1 ring-white/[.06] transition group-hover:ring-white/[.13]">OT</div>
           <div className="min-w-0 flex-1 [&_strong]:block [&_strong]:truncate [&_strong]:text-[10px] [&_span]:mt-[3px] [&_span]:block [&_span]:text-[9px] [&_span]:text-[#69758c]">
-            <strong>Office of Commissioner Desiderio R. Apag III</strong><span>Central Office</span>
+            <strong>Office of the JHCSC President</strong><span>Central Office</span>
           </div>
           <span className="text-[#586780] transition-transform group-hover:translate-x-0.5 group-hover:text-[#91a4c4]"><Icon name="chevron" size={15} /></span>
         </div>
