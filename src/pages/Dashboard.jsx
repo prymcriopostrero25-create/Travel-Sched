@@ -151,7 +151,7 @@ export default function Dashboard({
                   ? "Calendar live"
                   : "Calendar offline"}
             </div>
-            <p className="m-0 text-xs font-medium text-[#aab9d8]">{greeting}, OCDRA III Staff</p>
+            <p className="m-0 text-xs font-medium text-[#aab9d8]">{greeting}, OP Personnel</p>
             <h1 className="mb-2 mt-1.5 max-w-[620px] font-[Manrope] text-[30px] font-extrabold leading-tight tracking-[-.04em] max-[520px]:text-[25px]">
               Keep every official trip moving.
             </h1>
