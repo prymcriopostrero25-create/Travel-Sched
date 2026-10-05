@@ -214,6 +214,7 @@ export default function TravelCalendar({
   const defaultCreateForm = () => ({
     title: "",
     startTime: "",
+    endTime: "",
     endDate: defaultDateValue,
     location: "",
     personnelEntries: [{ name: "", email: "" }],
@@ -254,7 +255,19 @@ export default function TravelCalendar({
     const start = allDay
       ? new Date(`${startDate}T00:00`)
       : new Date(`${startDate}T${createForm.startTime}`)
-    const end = new Date(new Date(`${createForm.endDate}T00:00`).getTime() + 86400000)
+    let end
+    if (allDay) {
+      end = new Date(`${createForm.endDate}T00:00`)
+      end.setDate(end.getDate() + 1)
+    } else if (createForm.endTime) {
+      end = new Date(`${createForm.endDate}T${createForm.endTime}`)
+    } else {
+      end = new Date(`${createForm.endDate}T${createForm.startTime}`)
+      end.setHours(end.getHours() + 1)
+      // A default duration must stay on the chosen final day.
+      const lastMinute = new Date(`${createForm.endDate}T23:59`)
+      if (end > lastMinute) end = lastMinute
+    }
     if (!createForm.title.trim()) {
       setCreateError("Title is required.")
       return
@@ -575,6 +588,7 @@ export default function TravelCalendar({
                       <input
                         className={ui.formControl}
                         type="date"
+                        min={defaultDateValue}
                         value={createForm.endDate}
                         onChange={(e) => updateCreateForm("endDate", e.target.value)}
                         required
@@ -582,7 +596,7 @@ export default function TravelCalendar({
                     </label>
                     <label className="grid gap-1.5">
                       <span className="text-[9px] font-bold uppercase tracking-[.05em] text-[#856f74]">
-                        Time
+                        Start time
                         <small className="ml-[5px] font-medium normal-case tracking-normal text-[#ac9ba0]">
                           Optional
                         </small>
@@ -594,6 +608,22 @@ export default function TravelCalendar({
                         onChange={(e) => updateCreateForm("startTime", e.target.value)}
                       />
                     </label>
+                    {createForm.startTime && (
+                      <label className="grid gap-1.5">
+                        <span className="text-[9px] font-bold uppercase tracking-[.05em] text-[#856f74]">
+                          End time
+                        </span>
+                        <input
+                          className={ui.formControl}
+                          type="time"
+                          value={createForm.endTime}
+                          onChange={(e) => updateCreateForm("endTime", e.target.value)}
+                        />
+                        <small className="text-[10px] text-[#856f74]">
+                          Optional: defaults to one hour after the start time, up to 11:59 PM on the Until date.
+                        </small>
+                      </label>
+                    )}
                     <label className="grid gap-1.5">
                       <span className="text-[9px] font-bold uppercase tracking-[.05em] text-[#856f74]">
                         Location
