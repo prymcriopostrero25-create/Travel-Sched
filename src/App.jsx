@@ -54,7 +54,7 @@ const createdEventPayload = (form, result) => ({
   summary: form.title || "Official Travel",
   location: form.location || "",
   description: [
-    `Personnel: ${form.personnel}`,
+    form.personnel ? `Personnel: ${form.personnel}` : "",
     form.purpose ? `Purpose: ${form.purpose}` : "",
     form.notes ? `Notes: ${form.notes}` : "",
   ]
@@ -374,8 +374,8 @@ export default function App() {
       const missingNames = result.email?.missing || []
       const failedEmails = result.email?.failed || []
       const emailMessage = sentCount
-        ? ` One itinerary email was sent to ${form.personnelEmail}, with all recipients in To.`
-        : " No itinerary emails were sent."
+        ? ` One itinerary email was sent to ${(result.email?.recipients || [form.personnelEmail]).join(", ")}, with all recipients in To.`
+        : " No itinerary emails were sent to unchanged personnel."
       const missingMessage = missingNames.length
         ? ` No configured email was available for: ${missingNames.join(", ")}.`
         : ""

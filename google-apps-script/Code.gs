@@ -212,6 +212,9 @@ function doPost(request) {
       const previousEmails = String(assignedEvent.getTag('personnelEmail') || '').split(',')
         .map(function(email) { return email.trim().toLowerCase(); }).filter(Boolean);
       const wantedEmails = assignmentEmails.map(function(email) { return email.toLowerCase(); });
+      const newRecipientEmails = assignmentEmails.filter(function(email) {
+        return previousEmails.indexOf(email.toLowerCase()) === -1;
+      });
       const currentGuests = assignedEvent.getGuestList().map(function(guest) { return guest.getEmail(); });
       currentGuests.forEach(function(email) {
         const normalized = email.toLowerCase();
@@ -240,7 +243,10 @@ function doPost(request) {
         .filter(Boolean)
         .join('\n\n');
       assignedEvent.setDescription(updatedDescription);
-      const emailResult = sendItineraryEmails(assignedEvent, values.personnel, values.notes || '', calendar, values.personnelEmail);
+      const emailResult = newRecipientEmails.length
+        ? sendItineraryEmails(assignedEvent, values.personnel, values.notes || '', calendar, newRecipientEmails.join(', '))
+        : { sent: [], missing: [], failed: [] };
+      emailResult.recipients = newRecipientEmails;
       return jsonResponse({
         ok: true,
         id: assignedEvent.getId(),
@@ -249,8 +255,8 @@ function doPost(request) {
       });
     }
 
-    if (!values.title || !values.start || !values.end || !values.personnel) {
-      return jsonResponse({ ok: false, error: 'Title, personnel, start, and end are required.' });
+    if (!values.title || !values.start || !values.end) {
+      return jsonResponse({ ok: false, error: 'Title, start, and end are required.' });
     }
 
     const personnelEmails = String(values.personnelEmail || '').split(',').map(function(email) { return email.trim(); }).filter(Boolean);
@@ -265,7 +271,7 @@ function doPost(request) {
     }
 
     const description = [
-      'Personnel: ' + values.personnel,
+      values.personnel ? 'Personnel: ' + values.personnel : '',
       values.purpose ? 'Purpose: ' + values.purpose : '',
       values.notes ? 'Notes: ' + values.notes : ''
     ].filter(Boolean).join('\n');
@@ -282,7 +288,7 @@ function doPost(request) {
     if (values.colorId && EVENT_COLORS_BY_ID[values.colorId]) {
       event.setColor(EVENT_COLORS_BY_ID[values.colorId]);
     }
-    event.setTag('personnel', values.personnel);
+    event.setTag('personnel', values.personnel || '');
     event.setTag('travelCreated', 'true');
     if (values.personnelEmail) {
       event.setTag('personnelEmail', values.personnelEmail.trim());
@@ -302,7 +308,7 @@ function doPost(request) {
         summary: event.getTitle(),
         location: event.getLocation() || '',
         description: description,
-        personnel: values.personnel,
+        personnel: values.personnel || '',
         personnelEmail: values.personnelEmail ? values.personnelEmail.trim() : '',
         assignmentNotes: values.notes || '',
         guests: [],

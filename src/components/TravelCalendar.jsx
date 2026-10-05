@@ -249,8 +249,8 @@ export default function TravelCalendar({
       ? new Date(`${startDate}T00:00`)
       : new Date(`${startDate}T${createForm.startTime}`)
     const end = new Date(new Date(`${createForm.endDate}T00:00`).getTime() + 86400000)
-    if (!createForm.title.trim() || createForm.personnelEntries.some((entry) => !entry.name.trim())) {
-      setCreateError("Title and personnel are required.")
+    if (!createForm.title.trim()) {
+      setCreateError("Title is required.")
       return
     }
     if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || end <= start) {
@@ -264,7 +264,7 @@ export default function TravelCalendar({
       start,
       end,
       location: createForm.location.trim(),
-      personnel: createForm.personnelEntries.map((entry) => entry.name.trim()).join(", "),
+      personnel: createForm.personnelEntries.map((entry) => entry.name.trim()).filter(Boolean).join(", "),
       personnelEmail: [...new Set(createForm.personnelEntries.map((entry) => entry.email.trim()).filter(Boolean))].join(", "),
       purpose: createForm.purpose.trim(),
       notes: createForm.notes.trim(),
@@ -601,7 +601,7 @@ export default function TravelCalendar({
                       />
                     </label>
                     <div className="col-span-2 flex items-center justify-between max-[520px]:col-span-1">
-                      <span className="text-[9px] font-bold uppercase tracking-[.05em] text-[#856f74]">Assigned personnel</span>
+                      <span className="text-[9px] font-bold uppercase tracking-[.05em] text-[#856f74]">Assigned personnel (optional)</span>
                       <button
                         type="button"
                         className={`${ui.secondaryButton} flex items-center gap-1.5`}
@@ -619,7 +619,7 @@ export default function TravelCalendar({
                     </div>
                     <label className="grid gap-1.5">
                       <span className="text-[9px] font-bold uppercase tracking-[.05em] text-[#856f74]">
-                        Personnel *
+                        Personnel
                       </span>
                       <input
                         className={ui.formControl}
@@ -628,7 +628,6 @@ export default function TravelCalendar({
                         value={entry.name}
                         onChange={(e) => updatePersonnelEntry(index, "name", e.target.value)}
                         placeholder="Type the assigned personnel name"
-                        required
                       />
                     </label>
                     <label className="grid gap-1.5">
