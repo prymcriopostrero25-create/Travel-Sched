@@ -262,18 +262,16 @@ export default function TravelCalendar({
     } else if (createForm.endTime) {
       end = new Date(`${createForm.endDate}T${createForm.endTime}`)
     } else {
-      end = new Date(`${createForm.endDate}T${createForm.startTime}`)
-      end.setHours(end.getHours() + 1)
-      // A default duration must stay on the chosen final day.
-      const lastMinute = new Date(`${createForm.endDate}T23:59`)
-      if (end > lastMinute) end = lastMinute
+      end = new Date(`${createForm.endDate}T17:00`)
     }
     if (!createForm.title.trim()) {
       setCreateError("Title is required.")
       return
     }
     if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || end <= start) {
-      setCreateError("Enter a valid date or time range.")
+      setCreateError(!allDay && !createForm.endTime && end <= start
+        ? "The default end time is 5:00 PM. Choose an end time after the start time."
+        : "Enter a valid date or time range.")
       return
     }
     setCreatingEvent(true)
@@ -620,7 +618,7 @@ export default function TravelCalendar({
                           onChange={(e) => updateCreateForm("endTime", e.target.value)}
                         />
                         <small className="text-[10px] text-[#856f74]">
-                          Optional: defaults to one hour after the start time, up to 11:59 PM on the Until date.
+                          Optional: defaults to 5:00 PM on the Until date.
                         </small>
                       </label>
                     )}
