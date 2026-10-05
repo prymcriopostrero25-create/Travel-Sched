@@ -1,20 +1,19 @@
 import { useEffect, useState } from "react"
 import Icon from "./Icon"
-import { personnel } from "../data/personnel"
 import { ui } from "../styles"
 const DAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"],
   COLORS = ["green", "blue", "violet", "orange"],
   MAX_EVENT_ROWS = 3
 const GOOGLE_EVENT_COLORS = [
-  { id: "1", name: "Lavender", background: "#7986cb", foreground: "#ffffff" },
+  { id: "1", name: "Lavender", background: "#bb8492", foreground: "#ffffff" },
   { id: "2", name: "Sage", background: "#33b679", foreground: "#ffffff" },
   { id: "3", name: "Grape", background: "#8e24aa", foreground: "#ffffff" },
   { id: "4", name: "Flamingo", background: "#e67c73", foreground: "#1f1f1f" },
   { id: "5", name: "Banana", background: "#f6bf26", foreground: "#1f1f1f" },
   { id: "6", name: "Tangerine", background: "#f4511e", foreground: "#ffffff" },
-  { id: "7", name: "Peacock", background: "#039be5", foreground: "#ffffff" },
+  { id: "7", name: "Peacock", background: "#e5426b", foreground: "#ffffff" },
   { id: "8", name: "Graphite", background: "#616161", foreground: "#ffffff" },
-  { id: "9", name: "Blueberry", background: "#3f51b5", foreground: "#ffffff" },
+  { id: "9", name: "Blueberry", background: "#a7586c", foreground: "#ffffff" },
   { id: "10", name: "Basil", background: "#0b8043", foreground: "#ffffff" },
   { id: "11", name: "Tomato", background: "#d50000", foreground: "#ffffff" },
 ]
@@ -63,24 +62,31 @@ const colorForEvent = (event) => {
 const eventColor = (color) =>
   ({
     green: "border-[#43aa78] bg-[#e5f7ee] text-[#177a55] hover:bg-[#d9f2e6]",
-    blue: "border-[#4b78dc] bg-[#eaf1ff] text-[#2859bf] hover:bg-[#dfeaff]",
-    violet: "border-[#795dc9] bg-[#f0ecff] text-[#6848bd] hover:bg-[#e7e0ff]",
+    blue: "border-[#944059] bg-[#f8edf0] text-[#741b32] hover:bg-[#f1dce3]",
+    violet: "border-[#b97183] bg-[#fff1f5] text-[#ae6074] hover:bg-[#ffe9ee]",
     orange: "border-[#dd8c32] bg-[#fff3e3] text-[#a76518] hover:bg-[#ffeaca]",
   })[color]
 const detailColor = (color) =>
-  ({ green: "bg-[#43aa78]", blue: "bg-[#4b78dc]", violet: "bg-[#795dc9]", orange: "bg-[#dd8c32]" })[
+  ({ green: "bg-[#43aa78]", blue: "bg-[#944059]", violet: "bg-[#b97183]", orange: "bg-[#dd8c32]" })[
     color
   ]
+// Render blue calendar colors in the app palette without changing their Google IDs.
+const calendarDisplayColor = (value) => {
+  const match = /^#([0-9a-f]{6})$/i.exec(value || "")
+  if (!match) return value
+  const [r, g, b] = [0, 2, 4].map((offset) => parseInt(match[1].slice(offset, offset + 2), 16))
+  return b > r && b >= g && b - r > 15 ? "#81243d" : value
+}
 const googleColorStyle = (event) =>
   event.color?.background
     ? {
-        backgroundColor: event.color.background,
-        borderLeftColor: event.color.background,
+        backgroundColor: calendarDisplayColor(event.color.background),
+        borderLeftColor: calendarDisplayColor(event.color.background),
         color: event.color.foreground || "#ffffff",
       }
     : undefined
 const detailColorStyle = (event) =>
-  event.color?.background ? { backgroundColor: event.color.background } : undefined
+  event.color?.background ? { backgroundColor: calendarDisplayColor(event.color.background) } : undefined
 export default function TravelCalendar({
   events = [],
   loading,
@@ -210,7 +216,8 @@ export default function TravelCalendar({
     startTime: "",
     endDate: defaultDateValue,
     location: "",
-    personnel: [],
+    personnel: "",
+    personnelEmail: "",
     purpose: "",
     notes: "",
     colorId: "7",
@@ -220,13 +227,6 @@ export default function TravelCalendar({
     setCreateForm((form) => ({
       ...form,
       [field]: value,
-    }))
-  const toggleCreatePersonnel = (name) =>
-    setCreateForm((form) => ({
-      ...form,
-      personnel: form.personnel.includes(name)
-        ? form.personnel.filter((item) => item !== name)
-        : [...form.personnel, name],
     }))
   const openCreateForm = () => {
     setCreateError("")
@@ -242,7 +242,7 @@ export default function TravelCalendar({
       ? new Date(`${startDate}T00:00`)
       : new Date(`${startDate}T${createForm.startTime}`)
     const end = new Date(new Date(`${createForm.endDate}T00:00`).getTime() + 86400000)
-    if (!createForm.title.trim() || !createForm.personnel.length) {
+    if (!createForm.title.trim() || !createForm.personnel.trim()) {
       setCreateError("Title and personnel are required.")
       return
     }
@@ -257,7 +257,8 @@ export default function TravelCalendar({
       start,
       end,
       location: createForm.location.trim(),
-      personnel: createForm.personnel.join(", "),
+      personnel: createForm.personnel.trim(),
+      personnelEmail: createForm.personnelEmail.trim(),
       purpose: createForm.purpose.trim(),
       notes: createForm.notes.trim(),
       colorId: createForm.colorId,
@@ -278,47 +279,47 @@ export default function TravelCalendar({
   )
   const assignedEvents = monthEvents.filter((event) => event.personnel?.length).length
   return (
-    <article className="overflow-hidden rounded-[20px] border border-[#dfe5ef] bg-white shadow-[0_10px_35px_#243b6410] max-[520px]:rounded-[16px]">
-      <header className="relative flex min-h-[96px] items-center justify-between gap-5 overflow-hidden border-b border-[#e6ebf3] bg-gradient-to-r from-[#fbfcff] to-[#f5f8ff] px-6 py-5 max-[760px]:items-start max-[760px]:flex-col max-[520px]:gap-4 max-[520px]:px-4 max-[520px]:py-4">
-        <span className="absolute -right-14 -top-20 size-48 rounded-full border-[28px] border-[#3267e308]" />
+    <article className="overflow-hidden rounded-[20px] border border-[#e9dfe2] bg-white shadow-[0_10px_35px_#5c323c10] max-[520px]:rounded-[16px]">
+      <header className="relative flex min-h-[96px] items-center justify-between gap-5 overflow-hidden border-b border-[#eee4e7] bg-gradient-to-r from-[#fdfafb] to-[#faf1f4] px-6 py-5 max-[760px]:items-start max-[760px]:flex-col max-[520px]:gap-4 max-[520px]:px-4 max-[520px]:py-4">
+        <span className="absolute -right-14 -top-20 size-48 rounded-full border-[28px] border-[#741b3208]" />
         <div className="flex items-center gap-3">
-          <span className="grid size-[48px] shrink-0 place-items-center rounded-[13px] bg-gradient-to-br from-[#3267e3] to-[#6558d7] text-white shadow-[0_8px_20px_#3267e32b] max-[520px]:size-10">
+          <span className="grid size-[48px] shrink-0 place-items-center rounded-[13px] bg-gradient-to-br from-[#741b32] to-[#81243d] text-white shadow-[0_8px_20px_#741b322b] max-[520px]:size-10">
             <Icon name="calendar" />
           </span>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="m-0 font-[Manrope] text-lg font-extrabold tracking-[-.02em] text-[#17233b]">
+              <h2 className="m-0 font-[Manrope] text-lg font-extrabold tracking-[-.02em] text-[#361e24]">
                 Travel Calendar
               </h2>
-              {loading && <i className="size-1.5 animate-pulse rounded-full bg-[#3267e3]" />}
+              {loading && <i className="size-1.5 animate-pulse rounded-full bg-[#741b32]" />}
             </div>
-            <p className="mb-0 mt-1 text-[11px] text-[#7d8798]">
+            <p className="mb-0 mt-1 text-[11px] text-[#988589]">
               {monthEvents.length} trips · {assignedEvents} assigned this month
             </p>
           </div>
         </div>
         <div className="relative flex items-center gap-1.5 max-[520px]:w-full max-[520px]:flex-wrap">
           <button
-            className="mr-1 inline-flex h-10 items-center justify-center rounded-[10px] border border-[#dbe3f0] bg-white px-4 text-[11px] font-bold text-[#41506a] shadow-sm transition hover:border-[#bdcbea] hover:text-[#3267e3]"
+            className="mr-1 inline-flex h-10 items-center justify-center rounded-[10px] border border-[#e9dbe0] bg-white px-4 text-[11px] font-bold text-[#62464d] shadow-sm transition hover:border-[#d8a9b6] hover:text-[#741b32]"
             onClick={() => selectMonth(new Date())}
           >
             Today
           </button>
           <button
-            className="grid size-10 place-items-center rounded-[10px] border border-[#dbe3f0] bg-white text-[22px] text-[#536078] shadow-sm transition hover:border-[#bdcbea] hover:text-[#3267e3]"
+            className="grid size-10 place-items-center rounded-[10px] border border-[#e9dbe0] bg-white text-[22px] text-[#6e565c] shadow-sm transition hover:border-[#d8a9b6] hover:text-[#741b32]"
             onClick={() => move(-1)}
             aria-label="Previous month"
           >
             ‹
           </button>
           <button
-            className="grid size-10 place-items-center rounded-[10px] border border-[#dbe3f0] bg-white text-[22px] text-[#536078] shadow-sm transition hover:border-[#bdcbea] hover:text-[#3267e3]"
+            className="grid size-10 place-items-center rounded-[10px] border border-[#e9dbe0] bg-white text-[22px] text-[#6e565c] shadow-sm transition hover:border-[#d8a9b6] hover:text-[#741b32]"
             onClick={() => move(1)}
             aria-label="Next month"
           >
             ›
           </button>
-          <strong className="ml-2 min-w-[175px] text-right font-[Manrope] text-[16px] font-extrabold text-[#202c43] max-[520px]:order-first max-[520px]:w-full max-[520px]:min-w-0 max-[520px]:text-left">
+          <strong className="ml-2 min-w-[175px] text-right font-[Manrope] text-[16px] font-extrabold text-[#481020] max-[520px]:order-first max-[520px]:w-full max-[520px]:min-w-0 max-[520px]:text-left">
             {month.toLocaleDateString("en-US", {
               month: "long",
               year: "numeric",
@@ -328,28 +329,28 @@ export default function TravelCalendar({
       </header>
       {loading && (
         <div
-          className="flex items-center gap-2 border-b border-[#dce6f8] bg-[#f1f5ff] px-6 py-2 text-[9px] font-medium text-[#3267e3]"
+          className="flex items-center gap-2 border-b border-[#ecd6de] bg-[#faf2f4] px-6 py-2 text-[9px] font-medium text-[#741b32]"
           role="status"
           aria-live="polite"
         >
           Synchronizing Google Calendar… The first sync may take a moment.
         </div>
       )}
-      <div className="flex items-center justify-between gap-3 border-b border-[#e8ecf3] bg-white px-6 py-3 max-[620px]:items-start max-[620px]:flex-col max-[520px]:px-4">
-        <div className="flex flex-wrap items-center gap-4 text-[9px] font-semibold text-[#6f7a8d]">
+      <div className="flex items-center justify-between gap-3 border-b border-[#eee6e8] bg-white px-6 py-3 max-[620px]:items-start max-[620px]:flex-col max-[520px]:px-4">
+        <div className="flex flex-wrap items-center gap-4 text-[9px] font-semibold text-[#8d777d]">
           <span className="inline-flex items-center gap-1.5">
-            <i className="size-2 rounded-full bg-[#4285f4]" /> Colors synchronized from Google
+            <i className="size-2 rounded-full bg-[#f47494]" /> Colors synchronized from Google
             Calendar
           </span>
         </div>
-        <span className="text-[9px] text-[#98a1b1]">Select a date to view details</span>
+        <span className="text-[9px] text-[#b19fa3]">Select a date to view details</span>
       </div>
       <div className="overflow-x-auto max-[620px]:hidden">
         <div className="min-w-[760px]">
-          <div className="grid grid-cols-7 border-b border-[#e5e9f1] bg-[#f8faff]">
+          <div className="grid grid-cols-7 border-b border-[#eae2e4] bg-[#fcf7f8]">
             {DAYS.map((day) => (
               <span
-                className="px-1 py-[12px] text-center text-[10px] font-extrabold tracking-[.12em] text-[#778194]"
+                className="px-1 py-[12px] text-center text-[10px] font-extrabold tracking-[.12em] text-[#947f84]"
                 key={day}
               >
                 {day}
@@ -373,14 +374,14 @@ export default function TravelCalendar({
               return (
                 <div
                   key={dateKey(date)}
-                  className={`relative h-[132px] min-w-0 cursor-pointer overflow-visible border-b border-r border-[#e8ecf3] bg-white p-[10px] transition-colors hover:bg-[#f6f9ff] [&:nth-child(7n)]:border-r-0 ${outside ? "bg-[#fafbfc] text-[#b8bec9]" : ""} ${today ? "bg-[#f8faff] shadow-[inset_0_3px_0_#3267e3]" : ""} ${past ? "bg-[#fbfcfd] [&_.event]:opacity-70 [&_.event]:saturate-[.8] [&_.event]:blur-[.35px] [&_.more]:opacity-65 [&_.more]:blur-[.25px]" : ""}`}
+                  className={`relative h-[132px] min-w-0 cursor-pointer overflow-visible border-b border-r border-[#eee6e8] bg-white p-[10px] transition-colors hover:bg-[#fbf3f5] [&:nth-child(7n)]:border-r-0 ${outside ? "bg-[#fafbfc] text-[#c9bdc0]" : ""} ${today ? "bg-[#fcf7f8] shadow-[inset_0_3px_0_#741b32]" : ""} ${past ? "bg-[#fbfcfd] [&_.event]:opacity-70 [&_.event]:saturate-[.8] [&_.event]:blur-[.35px] [&_.more]:opacity-65 [&_.more]:blur-[.25px]" : ""}`}
                   onClick={() => openDay(date)}
                   role="button"
                   tabIndex="0"
                   onKeyDown={(e) => e.key === "Enter" && openDay(date)}
                 >
                   <span
-                    className={`mb-[7px] grid size-[28px] place-items-center rounded-[9px] text-[12px] font-bold ${today ? "bg-[#3267e3] text-white shadow-[0_4px_10px_#3267e32e]" : past ? "text-[#aeb5c1] blur-[.3px]" : "text-[#48546a]"}`}
+                    className={`mb-[7px] grid size-[28px] place-items-center rounded-[9px] text-[12px] font-bold ${today ? "bg-[#741b32] text-white shadow-[0_4px_10px_#741b322e]" : past ? "text-[#c1b3b7] blur-[.3px]" : "text-[#624b51]"}`}
                   >
                     {date.getDate()}
                   </span>
@@ -388,7 +389,7 @@ export default function TravelCalendar({
                     {visibleEvents.map((entry, index) => (
                       <button
                         key={`${entry.event.id}-${entry.event.start?.toISOString()}-${index}`}
-                        className={`event absolute left-0 h-[25px] overflow-hidden text-ellipsis whitespace-nowrap rounded-r-[6px] rounded-l-[3px] border-0 border-l-[3px] px-2 py-1 text-left text-[10px] font-bold shadow-[0_2px_5px_#26395c0a] transition [&_span]:mr-[5px] [&_span]:font-medium [&_span]:opacity-70 ${entry.event.color?.background ? "brightness-100 hover:brightness-95" : eventColor(colorForEvent(entry.event))} ${entry.span > 1 ? "z-[4] max-w-none w-[calc(var(--day-span)*(100%+20px)-20px)]" : "z-[5] w-full max-w-full"}`}
+                        className={`event absolute left-0 h-[25px] overflow-hidden text-ellipsis whitespace-nowrap rounded-r-[6px] rounded-l-[3px] border-0 border-l-[3px] px-2 py-1 text-left text-[10px] font-bold shadow-[0_2px_5px_#55313a0a] transition [&_span]:mr-[5px] [&_span]:font-medium [&_span]:opacity-70 ${entry.event.color?.background ? "brightness-100 hover:brightness-95" : eventColor(colorForEvent(entry.event))} ${entry.span > 1 ? "z-[4] max-w-none w-[calc(var(--day-span)*(100%+20px)-20px)]" : "z-[5] w-full max-w-full"}`}
                         style={{
                           "--day-span": entry.span,
                           top: `${entry.lane * 29}px`,
@@ -415,7 +416,7 @@ export default function TravelCalendar({
                     ))}
                     {hiddenEventCount > 0 && (
                       <button
-                        className="more absolute left-0 border-0 bg-transparent px-1.5 py-[3px] text-left text-[11px] font-bold text-[#4c64a0] hover:text-[#294a9f] hover:underline"
+                        className="more absolute left-0 border-0 bg-transparent px-1.5 py-[3px] text-left text-[11px] font-bold text-[#935c69] hover:text-[#924458] hover:underline"
                         style={{ top: `${visibleEventLimit * 29}px` }}
                         aria-label={`View ${hiddenEventCount} more event${hiddenEventCount === 1 ? "" : "s"} on ${date.toLocaleDateString("en-US")}`}
                         onClick={(e) => {
@@ -434,10 +435,10 @@ export default function TravelCalendar({
         </div>
       </div>
       <div className="hidden max-[620px]:block">
-        <div className="grid grid-cols-7 border-b border-[#e5e9f1] bg-[#f8faff]">
+        <div className="grid grid-cols-7 border-b border-[#eae2e4] bg-[#fcf7f8]">
           {DAYS.map((day) => (
             <span
-              className="py-2.5 text-center text-[8px] font-extrabold tracking-[.08em] text-[#778194]"
+              className="py-2.5 text-center text-[8px] font-extrabold tracking-[.08em] text-[#947f84]"
               key={day}
             >
               {day.slice(0, 1)}
@@ -455,16 +456,16 @@ export default function TravelCalendar({
               <button
                 key={key}
                 type="button"
-                className={`relative flex min-h-[62px] min-w-0 flex-col items-center border-b border-r border-[#e8ecf3] bg-white px-0.5 py-2 text-center [&:nth-child(7n)]:border-r-0 ${outside ? "bg-[#fafbfc] text-[#b8bec9]" : "text-[#48546a]"} ${today ? "bg-[#f3f7ff] shadow-[inset_0_2px_0_#3267e3]" : ""} ${past ? "opacity-65 blur-[.35px]" : ""}`}
+                className={`relative flex min-h-[62px] min-w-0 flex-col items-center border-b border-r border-[#eee6e8] bg-white px-0.5 py-2 text-center [&:nth-child(7n)]:border-r-0 ${outside ? "bg-[#fafbfc] text-[#c9bdc0]" : "text-[#624b51]"} ${today ? "bg-[#faf0f3] shadow-[inset_0_2px_0_#741b32]" : ""} ${past ? "opacity-65 blur-[.35px]" : ""}`}
                 onClick={() => openDay(date)}
                 aria-label={`${date.toLocaleDateString("en-US", { month: "long", day: "numeric" })}, ${dayEvents.length} event${dayEvents.length === 1 ? "" : "s"}`}
               >
-                <span className={`grid size-7 place-items-center rounded-full text-[11px] font-bold ${today ? "bg-[#3267e3] text-white" : ""}`}>
+                <span className={`grid size-7 place-items-center rounded-full text-[11px] font-bold ${today ? "bg-[#741b32] text-white" : ""}`}>
                   {date.getDate()}
                 </span>
                 {dayEvents.length > 0 && (
-                  <span className="mt-1 flex max-w-full items-center gap-1 text-[8px] font-bold text-[#3267e3]">
-                    <i className="size-1.5 shrink-0 rounded-full bg-[#4b78dc]" />
+                  <span className="mt-1 flex max-w-full items-center gap-1 text-[8px] font-bold text-[#741b32]">
+                    <i className="size-1.5 shrink-0 rounded-full bg-[#944059]" />
                     <span className="truncate">{dayEvents.length}</span>
                   </span>
                 )}
@@ -478,15 +479,15 @@ export default function TravelCalendar({
           className={ui.backdrop}
           onMouseDown={(e) => e.target === e.currentTarget && setSelected(null)}
         >
-          <section className="max-h-[calc(100vh-40px)] w-[min(650px,100%)] overflow-auto rounded-[22px] bg-white shadow-[0_28px_90px_#0711275c] max-[520px]:max-h-[calc(100dvh-16px)] max-[520px]:rounded-[16px]">
-            <header className="relative flex justify-between gap-3 overflow-hidden bg-gradient-to-br from-[#13264f] via-[#234a99] to-[#4f59cc] px-7 py-7 text-white max-[520px]:px-4 max-[520px]:py-5">
+          <section className="max-h-[calc(100vh-40px)] w-[min(650px,100%)] overflow-auto rounded-[22px] bg-white shadow-[0_28px_90px_#240f145c] max-[520px]:max-h-[calc(100dvh-16px)] max-[520px]:rounded-[16px]">
+            <header className="relative flex justify-between gap-3 overflow-hidden bg-gradient-to-br from-[#3c0d19] via-[#591326] to-[#81243d] px-7 py-7 text-white max-[520px]:px-4 max-[520px]:py-5">
               <span className="absolute -right-12 -top-20 size-48 rounded-full border-[30px] border-white/[.05]" />
               <div className="flex gap-[11px]">
-                <span className="mt-1 grid size-10 shrink-0 place-items-center rounded-[11px] bg-white/10 text-[#dce7ff] backdrop-blur-sm">
+                <span className="mt-1 grid size-10 shrink-0 place-items-center rounded-[11px] bg-white/10 text-[#ffe6ec] backdrop-blur-sm">
                   <Icon name="calendar" size={18} />
                 </span>
                 <div>
-                  <p className="mb-2 mt-0 text-[9px] font-bold uppercase tracking-[.15em] text-[#b9cbf3]">
+                  <p className="mb-2 mt-0 text-[9px] font-bold uppercase tracking-[.15em] text-[#f3c9d4]">
                     Daily itinerary
                   </p>
                   <h3 className="m-0 font-[Manrope] text-[20px] font-extrabold tracking-[-.02em] max-[520px]:text-base">
@@ -497,7 +498,7 @@ export default function TravelCalendar({
                       year: "numeric",
                     })}
                   </h3>
-                  <p className="mb-0 mt-1.5 text-[10px] text-[#c8d7f5]">
+                  <p className="mb-0 mt-1.5 text-[10px] text-[#f5d5dd]">
                     {selected.events.length} scheduled event
                     {selected.events.length === 1 ? "" : "s"}
                   </p>
@@ -523,16 +524,16 @@ export default function TravelCalendar({
             <div className="p-4 max-[520px]:p-2.5">
               {showCreateForm && (
                 <form
-                  className="mb-3 rounded-[14px] border border-[#dce5f7] bg-[#f8faff] p-4 shadow-[0_5px_16px_#26395c0b] max-[520px]:p-3"
+                  className="mb-3 rounded-[14px] border border-[#f7e4e8] bg-[#fcf7f8] p-4 shadow-[0_5px_16px_#55313a0b] max-[520px]:p-3"
                   onSubmit={submitCreateForm}
                 >
                   <div className="mb-3 flex items-center justify-between gap-3">
-                    <h4 className="m-0 font-[Manrope] text-sm font-extrabold text-[#24304a]">
+                    <h4 className="m-0 font-[Manrope] text-sm font-extrabold text-[#442b31]">
                       Add calendar event
                     </h4>
                     <button
                       type="button"
-                      className="grid size-8 place-items-center rounded-full border border-[#dfe5ef] bg-white text-[#667085] hover:text-[#3267e3]"
+                      className="grid size-8 place-items-center rounded-full border border-[#e9dfe2] bg-white text-[#856f74] hover:text-[#741b32]"
                       onClick={() => {
                         setShowCreateForm(false)
                         setCreateError("")
@@ -544,7 +545,7 @@ export default function TravelCalendar({
                   </div>
                   <div className="grid grid-cols-2 gap-3 max-[520px]:grid-cols-1">
                     <label className="col-span-2 grid gap-1.5 max-[520px]:col-span-1">
-                      <span className="text-[9px] font-bold uppercase tracking-[.05em] text-[#667085]">
+                      <span className="text-[9px] font-bold uppercase tracking-[.05em] text-[#856f74]">
                         Title *
                       </span>
                       <input
@@ -556,7 +557,7 @@ export default function TravelCalendar({
                       />
                     </label>
                     <label className="grid gap-1.5">
-                      <span className="text-[9px] font-bold uppercase tracking-[.05em] text-[#667085]">
+                      <span className="text-[9px] font-bold uppercase tracking-[.05em] text-[#856f74]">
                         Until
                       </span>
                       <input
@@ -568,9 +569,9 @@ export default function TravelCalendar({
                       />
                     </label>
                     <label className="grid gap-1.5">
-                      <span className="text-[9px] font-bold uppercase tracking-[.05em] text-[#667085]">
+                      <span className="text-[9px] font-bold uppercase tracking-[.05em] text-[#856f74]">
                         Time
-                        <small className="ml-[5px] font-medium normal-case tracking-normal text-[#959dac]">
+                        <small className="ml-[5px] font-medium normal-case tracking-normal text-[#ac9ba0]">
                           Optional
                         </small>
                       </span>
@@ -582,7 +583,7 @@ export default function TravelCalendar({
                       />
                     </label>
                     <label className="grid gap-1.5">
-                      <span className="text-[9px] font-bold uppercase tracking-[.05em] text-[#667085]">
+                      <span className="text-[9px] font-bold uppercase tracking-[.05em] text-[#856f74]">
                         Location
                       </span>
                       <input
@@ -592,45 +593,35 @@ export default function TravelCalendar({
                         placeholder="Destination or venue"
                       />
                     </label>
-                    <fieldset className="col-span-2 m-0 min-w-0 border-0 p-0 max-[520px]:col-span-1">
-                      <legend className="mb-2 text-[9px] font-bold uppercase tracking-[.05em] text-[#667085]">
-                        Personnel *{" "}
-                        <small className="ml-[5px] font-medium normal-case tracking-normal text-[#959dac]">
-                          Select one or more
-                        </small>
-                      </legend>
-                      <div className="grid max-h-[190px] grid-cols-[repeat(auto-fit,minmax(160px,1fr))] items-stretch gap-2 overflow-auto rounded-[10px] border border-[#dfe4ec] bg-white p-2.5 max-[520px]:grid-cols-1">
-                        {personnel.map((name) => {
-                          const checked = createForm.personnel.includes(name)
-                          return (
-                            <label
-                              key={name}
-                              className={`flex min-h-[40px] cursor-pointer items-center gap-[9px] rounded-lg border px-[11px] py-[9px] text-[10px] leading-[1.35] transition hover:border-[#b8c9ee] hover:bg-[#f8faff] ${checked ? "border-[#8ba9ed] bg-[#edf3ff] font-semibold text-[#2f5fcf]" : "border-[#edf0f5] bg-white text-[#525d6f]"}`}
-                            >
-                              <input
-                                className="pointer-events-none absolute opacity-0"
-                                type="checkbox"
-                                checked={checked}
-                                onChange={() => toggleCreatePersonnel(name)}
-                              />
-                              <span
-                                className={`grid size-[19px] shrink-0 place-items-center rounded-[5px] border ${checked ? "border-[#3267e3] bg-[#3267e3] text-white [&_svg]:visible" : "border-[#c7cfdb] bg-white text-transparent [&_svg]:invisible"}`}
-                              >
-                                <Icon name="check" size={13} />
-                              </span>
-                              <span className="min-w-0 break-words">{name}</span>
-                            </label>
-                          )
-                        })}
-                      </div>
-                      {createForm.personnel.length > 0 && (
-                        <p className="mx-0.5 mb-0 mt-[7px] text-[9px] font-semibold text-[#4773dc]">
-                          {createForm.personnel.length} personnel selected
-                        </p>
-                      )}
-                    </fieldset>
                     <label className="col-span-2 grid gap-1.5 max-[520px]:col-span-1">
-                      <span className="text-[9px] font-bold uppercase tracking-[.05em] text-[#667085]">
+                      <span className="text-[9px] font-bold uppercase tracking-[.05em] text-[#856f74]">
+                        Personnel *
+                      </span>
+                      <input
+                        className={ui.formControl}
+                        type="text"
+                        name="personnel"
+                        value={createForm.personnel}
+                        onChange={(e) => updateCreateForm("personnel", e.target.value)}
+                        placeholder="Type the assigned personnel name"
+                        required
+                      />
+                    </label>
+                    <label className="col-span-2 grid gap-1.5 max-[520px]:col-span-1">
+                      <span className="text-[9px] font-bold uppercase tracking-[.05em] text-[#856f74]">
+                        Personnel email
+                      </span>
+                      <input
+                        className={ui.formControl}
+                        type="email"
+                        name="personnelEmail"
+                        value={createForm.personnelEmail}
+                        onChange={(e) => updateCreateForm("personnelEmail", e.target.value)}
+                        placeholder="name@example.com"
+                      />
+                    </label>
+                    <label className="col-span-2 grid gap-1.5 max-[520px]:col-span-1">
+                      <span className="text-[9px] font-bold uppercase tracking-[.05em] text-[#856f74]">
                         Notes
                       </span>
                       <textarea
@@ -642,7 +633,7 @@ export default function TravelCalendar({
                     </label>
                   </div>
                   <div className="mt-4">
-                    <span className="mb-2 block text-[9px] font-bold uppercase tracking-[.05em] text-[#667085]">
+                    <span className="mb-2 block text-[9px] font-bold uppercase tracking-[.05em] text-[#856f74]">
                       Event color
                     </span>
                     <div className="flex flex-wrap gap-2">
@@ -650,7 +641,7 @@ export default function TravelCalendar({
                         <button
                           key={color.id}
                           type="button"
-                          className={`grid size-8 place-items-center rounded-full border-2 bg-white transition ${createForm.colorId === color.id ? "border-[#17233b]" : "border-transparent hover:border-[#cfd8e8]"}`}
+                          className={`grid size-8 place-items-center rounded-full border-2 bg-white transition ${createForm.colorId === color.id ? "border-[#361e24]" : "border-transparent hover:border-[#e8d6da]"}`}
                           onClick={() => updateCreateForm("colorId", color.id)}
                           title={color.name}
                           aria-label={`Use ${color.name}`}
@@ -694,13 +685,13 @@ export default function TravelCalendar({
                   return (
                   <article
                     key={`${event.id}-${event.start?.toISOString()}-${index}`}
-                    className={`grid grid-cols-[5px_1fr] gap-4 rounded-[14px] border border-transparent p-5 transition hover:border-[#e5eaf3] hover:bg-[#f8faff] max-[520px]:gap-3 max-[520px]:p-3 ${selected.active === event ? "border-[#dce5f7] bg-[#f5f8ff] shadow-[0_5px_16px_#26395c0b]" : ""}`}
+                    className={`grid grid-cols-[5px_1fr] gap-4 rounded-[14px] border border-transparent p-5 transition hover:border-[#f3e9eb] hover:bg-[#fcf7f8] max-[520px]:gap-3 max-[520px]:p-3 ${selected.active === event ? "border-[#f7e4e8] bg-[#faf1f4] shadow-[0_5px_16px_#55313a0b]" : ""}`}
                   >
                     <span
                       className={`rounded ${event.color?.background ? "" : detailColor(COLORS[index % 4])}`}
                       style={detailColorStyle(event)}
                     />
-                    <div className="[&_p]:my-[9px] [&_p]:flex [&_p]:items-center [&_p]:gap-[9px] [&_p]:text-xs [&_p]:text-[#6f798a] [&_p:nth-of-type(2)]:hidden [&_p_svg]:size-[18px]">
+                    <div className="[&_p]:my-[9px] [&_p]:flex [&_p]:items-center [&_p]:gap-[9px] [&_p]:text-xs [&_p]:text-[#8a777b] [&_p:nth-of-type(2)]:hidden [&_p_svg]:size-[18px]">
                       <h4 className="mb-3 mt-0 font-[Manrope] text-base font-bold">
                         {event.title}
                       </h4>
@@ -727,13 +718,13 @@ export default function TravelCalendar({
                           : "No personnel assigned"}
                       </p>
                       {event.description && (
-                        <div className="mt-[13px] whitespace-pre-wrap rounded-[10px] border-l-[3px] border-[#4b78dc] bg-[#f4f7fb] px-[14px] py-[13px] text-xs leading-[1.55] text-[#596375]">
+                        <div className="mt-[13px] whitespace-pre-wrap rounded-[10px] border-l-[3px] border-[#944059] bg-[#fbf6f7] px-[14px] py-[13px] text-xs leading-[1.55] text-[#756166]">
                           {event.description}
                         </div>
                       )}
                       <div className="mt-4 flex flex-wrap gap-2">
                         <button
-                          className="inline-flex items-center gap-2 rounded-[9px] border-0 bg-[#3267e3] px-[15px] py-[11px] text-xs font-bold text-white shadow-[0_5px_14px_#3267e326] hover:-translate-y-px hover:bg-[#285aca] disabled:cursor-not-allowed disabled:bg-[#aeb7c8] disabled:shadow-none disabled:hover:translate-y-0"
+                          className="inline-flex items-center gap-2 rounded-[9px] border-0 bg-[#741b32] px-[15px] py-[11px] text-xs font-bold text-white shadow-[0_5px_14px_#741b3226] hover:-translate-y-px hover:bg-[#ba4f69] disabled:cursor-not-allowed disabled:bg-[#c8b5ba] disabled:shadow-none disabled:hover:translate-y-0"
                           disabled={selectedDateIsPast}
                           title={
                             selectedDateIsPast
@@ -765,7 +756,7 @@ export default function TravelCalendar({
                   )
                 })
               ) : (
-                <div className="p-[35px] text-center text-[#8993a4] [&_strong]:mb-1 [&_strong]:mt-[9px] [&_strong]:block [&_strong]:text-[11px] [&_strong]:text-[#465164] [&_p]:m-0 [&_p]:text-[9px]">
+                <div className="p-[35px] text-center text-[#a49195] [&_strong]:mb-1 [&_strong]:mt-[9px] [&_strong]:block [&_strong]:text-[11px] [&_strong]:text-[#644e54] [&_p]:m-0 [&_p]:text-[9px]">
                   <Icon name="calendar" size={30} />
                   <strong>No events on this date</strong>
                   <p>Select another date to view its schedule.</p>
@@ -777,13 +768,13 @@ export default function TravelCalendar({
       )}
       {confirmDelete && (
         <div
-          className="fixed inset-0 z-[130] grid place-items-center bg-[#0b13258f] p-5 backdrop-blur-[3px]"
+          className="fixed inset-0 z-[130] grid place-items-center bg-[#2211158f] p-5 backdrop-blur-[3px]"
           onMouseDown={(event) =>
             event.target === event.currentTarget && !deletingKey && setConfirmDelete(null)
           }
         >
           <section
-            className="w-[min(430px,100%)] rounded-[18px] bg-white p-7 text-center shadow-[0_24px_70px_#0711275c] max-[520px]:p-5"
+            className="w-[min(430px,100%)] rounded-[18px] bg-white p-7 text-center shadow-[0_24px_70px_#240f145c] max-[520px]:p-5"
             role="alertdialog"
             aria-modal="true"
             aria-labelledby="delete-event-title"
@@ -794,15 +785,15 @@ export default function TravelCalendar({
             </div>
             <h2
               id="delete-event-title"
-              className="m-0 font-[Manrope] text-xl font-extrabold text-[#172033]"
+              className="m-0 font-[Manrope] text-xl font-extrabold text-[#2f1c21]"
             >
               Delete this event?
             </h2>
             <p
               id="delete-event-description"
-              className="mb-2 mt-3 text-[13px] leading-[1.6] text-[#6f798a]"
+              className="mb-2 mt-3 text-[13px] leading-[1.6] text-[#8a777b]"
             >
-              <strong className="text-[#344054]">{confirmDelete.title}</strong> will be permanently
+              <strong className="text-[#4d383d]">{confirmDelete.title}</strong> will be permanently
               removed from Google Calendar.
             </p>
             <p className="m-0 text-xs text-[#a34b45]">This action cannot be undone.</p>

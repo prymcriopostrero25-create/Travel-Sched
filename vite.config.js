@@ -34,6 +34,24 @@ function appsScriptMiddleware(endpoint) {
           for (let attempt = 0; attempt < attempts; attempt += 1) {
             upstream = await fetch(targetUrl, options)
             body = await upstream.text()
+            // A write may finish before Google's redirected response is readable.
+            // Retry only the response URL, never the original POST.
+            if (method === "POST" && new URL(upstream.url).hostname === "script.googleusercontent.com") {
+              for (let readAttempt = 0; readAttempt < 2; readAttempt += 1) {
+                try {
+                  JSON.parse(body)
+                  break
+                } catch {
+                  await new Promise((resolve) => setTimeout(resolve, 700 * (readAttempt + 1)))
+                  upstream = await fetch(upstream.url, {
+                    method: "GET",
+                    redirect: "follow",
+                    signal: options.signal,
+                  })
+                  body = await upstream.text()
+                }
+              }
+            }
             try {
               JSON.parse(body)
               break
@@ -53,7 +71,9 @@ function appsScriptMiddleware(endpoint) {
               response.end(
                 JSON.stringify({
                   ok: false,
-                  error: isMissingDoGet
+                  error: method === "POST"
+                    ? "Google did not return a readable confirmation. The change may already be saved and the email may already be sent. Sync the calendar and check your email before saving again."
+                    : isMissingDoGet
                     ? "The configured Apps Script deployment does not contain doGet. Deploy this project as a web app from the script containing google-apps-script/Code.gs, then update VITE_GOOGLE_APPS_SCRIPT_URL to that deployment URL."
                     : body.trimStart().startsWith("<")
                       ? "Google Calendar returned a webpage instead of event data. Redeploy the Apps Script web app as a new version, authorize it if prompted, and keep access set to Anyone."
@@ -80,7 +100,9 @@ function appsScriptMiddleware(endpoint) {
           response.end(
             JSON.stringify({
               ok: false,
-              error: timedOut
+              error: request.method === "POST"
+                ? "The connection ended before Google confirmed the change. It may already be saved and the email may already be sent. Sync the calendar and check your email before saving again."
+                : timedOut
                 ? "Google Calendar took too long to respond."
                 : "Could not reach the Google Calendar service.",
               detail: error?.message || String(error),

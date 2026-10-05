@@ -39,3 +39,165 @@
 .sidebar-active-line { animation: sidebar-line-enter .35s both cubic-bezier(.22, 1, .36, 1); }
 .sidebar-live-dot { animation: sidebar-live-pulse 2s ease-in-out infinite; }
 .sidebar-syncing svg { animation: sidebar-spin 1.1s linear infinite; }
+
+/* Keep the desktop icon rail visible and reveal the full navigation on hover. */
+@media (min-width: 761px) {
+  .sidebar-shell {
+    width: 92px;
+    transition-property: width, transform;
+    transition-duration: 300ms;
+  }
+
+  .sidebar-shell:hover,
+  .sidebar-shell:has(:focus-visible) {
+    width: 260px;
+  }
+
+  .sidebar-shell > .relative {
+    width: 228px;
+    flex-shrink: 0;
+  }
+
+  .sidebar-shell > .relative.mx-2 {
+    width: 212px;
+  }
+
+  .sidebar-shell > .relative > .min-w-0,
+  .sidebar-shell > .relative > p,
+  .sidebar-shell > .relative > .h-px,
+  .sidebar-nav-item > .min-w-0,
+  .sidebar-nav-item > span:nth-of-type(3),
+  .sidebar-status > strong,
+  .sidebar-status > p,
+  .sidebar-status > span:last-child,
+  .sidebar-shell > .group > span:last-child {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 180ms ease, visibility 180ms ease;
+  }
+
+  .sidebar-shell:hover > .relative > .min-w-0,
+  .sidebar-shell:hover > .relative > p,
+  .sidebar-shell:hover > .relative > .h-px,
+  .sidebar-shell:hover .sidebar-nav-item > .min-w-0,
+  .sidebar-shell:hover .sidebar-nav-item > span:nth-of-type(3),
+  .sidebar-shell:hover .sidebar-status > strong,
+  .sidebar-shell:hover .sidebar-status > p,
+  .sidebar-shell:hover .sidebar-status > span:last-child,
+  .sidebar-shell:hover > .group > span:last-child,
+  .sidebar-shell:has(:focus-visible) > .relative > .min-w-0,
+  .sidebar-shell:has(:focus-visible) > .relative > p,
+  .sidebar-shell:has(:focus-visible) > .relative > .h-px,
+  .sidebar-shell:has(:focus-visible) .sidebar-nav-item > .min-w-0,
+  .sidebar-shell:has(:focus-visible) .sidebar-nav-item > span:nth-of-type(3),
+  .sidebar-shell:has(:focus-visible) .sidebar-status > strong,
+  .sidebar-shell:has(:focus-visible) .sidebar-status > p,
+  .sidebar-shell:has(:focus-visible) .sidebar-status > span:last-child,
+  .sidebar-shell:has(:focus-visible) > .group > span:last-child {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .sidebar-status {
+    padding: 13px;
+    max-height: 62px;
+    transition: max-height 300ms ease, background-color 300ms ease;
+  }
+
+  .sidebar-shell:hover .sidebar-status,
+  .sidebar-shell:has(:focus-visible) .sidebar-status {
+    max-height: 180px;
+  }
+}
+
+.dashboard-refresh {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+.dashboard-welcome { padding: 36px; }
+.dashboard-today,
+.dashboard-upcoming {
+  border-color: #e9dfe2;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px #48102005;
+}
+@media (max-width: 640px) {
+  .dashboard-refresh { gap: 20px; }
+  .dashboard-welcome { padding: 24px; }
+  .dashboard-heading { align-items: start; }
+  .dashboard-heading > span { padding: 8px 10px; font-size: 10px; white-space: nowrap; }
+  .dashboard-heading h1 { font-size: 23px; }
+}
+
+.travel-schedules .schedules-intro {
+  background: #fff;
+  color: #351923;
+  border: 1px solid #e9dfe2;
+  border-left: 5px solid #741b32;
+  border-radius: 20px;
+  padding: 30px;
+  box-shadow: 0 4px 20px #48102005;
+}
+.schedules-intro > .absolute { display: none; }
+.schedules-intro .max-w-\[620px\] > span {
+  background: #faf2f4;
+  border-color: #ecdce2;
+  color: #93445a;
+}
+.schedules-intro h1 { font-size: 32px; margin-top: 16px; }
+.schedules-intro p { color: #806c75; font-size: 13px; }
+.schedules-intro button {
+  background: linear-gradient(115deg, #590f23, #81243d);
+  color: white;
+  border-radius: 12px;
+  padding: 14px 20px;
+  box-shadow: 0 6px 18px #741b321a;
+}
+.schedules-workspace { border: 1px solid #e9dfe2; border-radius: 20px; box-shadow: 0 4px 20px #48102005; }
+.schedules-toolbar { padding: 22px 24px; border-color: #eee6e8; flex-wrap: wrap; }
+.schedules-month button { border-color: #e9dfe2; color: #741b32; }
+.schedules-month button:nth-child(2) { background: #faf2f4; font-family: Manrope, sans-serif; font-size: 14px; min-width: 180px; }
+.schedules-toolbar label { background: #fdfafb; }
+.schedules-toolbar input, .schedules-toolbar select { font-size: 12px; }
+.schedules-feature {
+  margin: 22px 24px 4px;
+  padding: 20px;
+  border-radius: 14px;
+  border-color: #e9d3dc;
+  background: linear-gradient(110deg, #f6e8ed, #fffbf8);
+}
+.schedules-feature strong { font-size: 16px; }
+.schedules-feature span { line-height: 1.6; }
+.schedules-list { padding: 20px 24px; }
+.schedule-row {
+  position: relative;
+  border: 0;
+  border-bottom: 1px solid #eee6e8;
+  background: white;
+  border-radius: 0;
+  padding: 20px 12px;
+  gap: 20px;
+}
+.schedule-row:hover { background: #fdf8fa; transform: none; box-shadow: none; }
+.schedule-date { background: #faf2f4; border: 1px solid #ecdce2; height: 64px; border-radius: 12px; }
+.schedule-date strong { font-size: 25px; }
+.schedule-date span span { font-size: 9px; }
+.schedule-title h3 { font-size: 14px; }
+.schedule-title > div:first-child > span { font-size: 9px; }
+.schedules-footer { background: #fdfafb; border-color: #eee6e8; padding: 16px 24px; font-size: 10px; color: #806c75; gap: 16px; }
+@media (max-width: 760px) {
+  .travel-schedules .schedules-intro { padding: 24px; }
+  .schedules-toolbar { padding: 18px; }
+  .schedules-feature { margin: 18px 18px 4px; }
+  .schedules-list { padding: 12px 18px; }
+  .schedule-row { gap: 12px; padding: 16px 4px; }
+  .schedule-title h3 { white-space: normal; }
+}
+@media (max-width: 560px) {
+  .schedules-feature { flex-wrap: wrap; }
+  .schedules-feature > div { flex-basis: calc(100% - 60px); }
+  .schedules-feature > span:last-child { margin-left: 56px; }
+  .schedules-footer { flex-wrap: wrap; padding: 14px 18px; }
+}

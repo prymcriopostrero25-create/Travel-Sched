@@ -3,7 +3,6 @@ import Sidebar from "./components/Sidebar"
 import Dashboard from "./pages/Dashboard"
 import Calendar from "./pages/Calendar"
 import TravelSchedules from "./pages/TravelSchedules"
-import Personnel from "./pages/Personnel"
 import Settings from "./pages/Settings"
 import Icon from "./components/Icon"
 import TravelAssignmentModal from "./components/TravelAssignmentModal"
@@ -17,12 +16,12 @@ import {
   requestCalendarAccess,
 } from "./services/api"
 import { loadSettings, saveSettings } from "./services/settings"
+import { notificationPermission, showNotification } from "./services/notifications"
 
 const pages = {
   Dashboard,
   Calendar,
   "Travel Schedules": TravelSchedules,
-  Personnel,
   Settings,
 }
 
@@ -89,6 +88,9 @@ const isAmbiguousDeleteResponse = (error) =>
 
 export default function App() {
   const [settings, setSettings] = useState(loadSettings)
+  const [permission, setPermission] = useState(notificationPermission)
+  const [syncNotice, setSyncNotice] = useState("")
+  const settingsRef = useRef(settings)
   const [activePage, setActivePage] = useState(() => loadSettings().preferences.defaultPage)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [calendar, setCalendar] = useState({
@@ -136,14 +138,24 @@ export default function App() {
     setSidebarOpen(false)
   }
   const updateSettings = (nextSettings) => {
-    setSettings(nextSettings)
     saveSettings(nextSettings)
+    settingsRef.current = nextSettings
+    setSettings(nextSettings)
   }
+  useEffect(() => {
+    const checkPermission = () => setPermission(notificationPermission())
+    window.addEventListener("focus", checkPermission)
+    return () => window.removeEventListener("focus", checkPermission)
+  }, [])
+  useEffect(() => {
+    if (!syncNotice) return
+    const timer = window.setTimeout(() => setSyncNotice(""), 5000)
+    return () => window.clearTimeout(timer)
+  }, [syncNotice])
   useEffect(() => {
     if (
       !settings.notifications.travelReminders ||
-      !("Notification" in window) ||
-      Notification.permission !== "granted"
+      permission !== "granted"
     )
       return
     const checkReminders = () => {
@@ -154,10 +166,11 @@ export default function App() {
           event.start instanceof Date ? event.start.getTime() : new Date(event.start).getTime()
         const key = eventKey(event)
         if (start > now && start - now <= lead && !sentReminders.current.has(key)) {
-          new Notification(event.title || "Upcoming travel", {
+          const delivered = showNotification(event.title || "Upcoming travel", {
             body: `Starts ${new Date(start).toLocaleString("en-PH")}`,
+            tag: `travel-${key}`,
           })
-          sentReminders.current.add(key)
+          if (delivered) sentReminders.current.add(key)
         }
       })
     }
@@ -168,6 +181,7 @@ export default function App() {
     calendar.events,
     settings.notifications.reminderMinutes,
     settings.notifications.travelReminders,
+    permission,
   ])
   const refreshCalendar = useCallback(
     (token = accessToken.current, { background = false } = {}) => {
@@ -188,6 +202,10 @@ export default function App() {
             error: "",
             lastSync: new Date(),
           }))
+          if (!background && settingsRef.current.notifications.syncAlerts) {
+            setSyncNotice("Google Calendar synchronized successfully.")
+            showNotification("Calendar synchronized", { body: "Your travel schedules are up to date.", tag: "calendar-sync" })
+          }
           return visibleEvents
         })
         .catch((error) => {
@@ -394,7 +412,14 @@ export default function App() {
       setSuccessPopup({
         open: true,
         title: "Event added",
-        message: "The event was saved successfully and synchronized with Google Calendar.",
+        message: "The event was saved successfully and synchronized with Google Calendar." +
+          (result.email?.failed?.length
+            ? " The itinerary email could not be sent. Contact the administrator to check Gmail authorization before sending it again."
+            : result.email?.sent?.length
+              ? ` An itinerary email was sent to ${form.personnelEmail.trim()}.`
+              : form.personnelEmail
+                ? " Email delivery was not confirmed. Check that the latest Apps Script version is deployed."
+                : ""),
       })
       return { ok: true, result }
     } catch (error) {
@@ -465,7 +490,7 @@ export default function App() {
   }
   return (
     <div
-      className={`flex min-h-screen min-w-[320px] bg-[#f4f6fa] font-['DM_Sans',sans-serif] text-[#172033] antialiased [&_button]:cursor-pointer ${settings.preferences.reduceMotion ? "reduce-motion" : ""}`}
+      className={`flex min-h-screen min-w-[320px] bg-[#f6f4f3] font-['DM_Sans',sans-serif] text-[#2f1c21] antialiased [&_button]:cursor-pointer ${settings.preferences.reduceMotion ? "reduce-motion" : ""}`}
     >
       <Sidebar
         activePage={activePage}
@@ -474,9 +499,9 @@ export default function App() {
         onClose={() => setSidebarOpen(false)}
         calendar={calendar}
       />
-      <main className="ml-[260px] min-w-0 flex-1 max-[760px]:ml-0">
+      <main className="ml-[92px] min-w-0 flex-1 max-[760px]:ml-0">
         <button
-          className={`${ui.iconButton} fixed left-3 top-3 z-20 hidden size-11 !border !border-white/15 !bg-[#111c34] !text-white shadow-[0_8px_22px_#111c3450] max-[760px]:grid [&_svg]:drop-shadow-[0_1px_1px_#00000055]`}
+          className={`${ui.iconButton} fixed left-3 top-3 z-20 hidden size-11 !border !border-white/15 !bg-[#481020] !text-white shadow-[0_8px_22px_#48102050] max-[760px]:grid [&_svg]:drop-shadow-[0_1px_1px_#00000055]`}
           onClick={() => setSidebarOpen(true)}
           aria-label="Open navigation"
         >
@@ -489,10 +514,13 @@ export default function App() {
             onNavigate={navigate}
             settings={settings}
             updateSettings={updateSettings}
+            permission={permission}
+            onPermissionChange={setPermission}
             {...calendarProps}
           />
         </div>
       </main>
+      {syncNotice && <div role="status" className="fixed bottom-5 right-5 z-50 flex max-w-[calc(100vw-40px)] items-center gap-3 rounded-xl border border-[#ccebdd] bg-[#effaf6] px-4 py-3 text-sm text-[#16845f] shadow-lg">{syncNotice}<button type="button" aria-label="Dismiss sync alert" onClick={() => setSyncNotice("")}><Icon name="close" size={16} /></button></div>}
       <TravelAssignmentModal
         key={`${travelModal.open}-${travelModal.selectedEvent?.id || "new"}-${travelModal.selectedEvent?.start?.toISOString() || ""}`}
         open={travelModal.open}

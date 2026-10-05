@@ -51,22 +51,22 @@ export default function TravelAssignmentModal({
   }
   return (
     <div
-      className="fixed inset-0 z-[100] grid place-items-center bg-[#0b1325a8] p-5 backdrop-blur-[4px] max-[520px]:p-2"
+      className="fixed inset-0 z-[100] grid place-items-center bg-[#221115a8] p-5 backdrop-blur-[4px] max-[520px]:p-2"
       onMouseDown={(event) => event.target === event.currentTarget && onClose()}
     >
       <section
-        className="max-h-[calc(100vh-40px)] w-[min(780px,100%)] overflow-auto rounded-[18px] bg-white shadow-[0_28px_80px_#07112755] max-[520px]:max-h-[calc(100dvh-16px)] max-[520px]:rounded-[14px]"
+        className="max-h-[calc(100vh-40px)] w-[min(780px,100%)] overflow-auto rounded-[18px] bg-white shadow-[0_28px_80px_#240f1455] max-[520px]:max-h-[calc(100dvh-16px)] max-[520px]:rounded-[14px]"
         role="dialog"
         aria-modal="true"
         aria-labelledby="travel-modal-title"
       >
-        <header className="flex justify-between gap-5 border-b border-[#e5e9f1] px-[25px] pb-[19px] pt-[23px] max-[520px]:gap-3 max-[520px]:px-4 max-[520px]:py-4">
+        <header className="flex justify-between gap-5 border-b border-[#eae2e4] px-[25px] pb-[19px] pt-[23px] max-[520px]:gap-3 max-[520px]:px-4 max-[520px]:py-4">
           <div>
             <span className={ui.pill}>GOOGLE CALENDAR</span>
             <h2 className="mb-1 mt-[5px] font-[Manrope] text-xl font-extrabold max-[520px]:text-lg" id="travel-modal-title">
               {isEditing ? "Change Travel Assignment" : "New Travel Assignment"}
             </h2>
-            <p className="m-0 text-[10px] text-[#7f8898]">Select a Calendar event, then assign the personnel who will attend.</p>
+            <p className="m-0 text-[10px] text-[#98868a]">Select a Calendar event, then assign the personnel who will attend.</p>
           </div>
           <button className={ui.iconButton} onClick={onClose}>
             <Icon name="close" />
@@ -75,7 +75,7 @@ export default function TravelAssignmentModal({
         <form className="px-[25px] py-[22px] max-[520px]:px-4 max-[520px]:py-4" onSubmit={submit}>
           <div className="grid grid-cols-2 gap-[15px] max-[520px]:grid-cols-1">
             <label className="col-span-full grid w-full gap-1.5">
-              <span className="text-[9px] font-bold uppercase tracking-[.05em] text-[#5e6879]">Google Calendar Event *</span>
+              <span className="text-[9px] font-bold uppercase tracking-[.05em] text-[#79666a]">Google Calendar Event *</span>
               <select className={ui.formControl} name="eventKey" value={form.eventKey} onChange={changeCalendarEvent} required>
                 <option value="">Select an event</option>
                 {events.map((event) => (
@@ -95,7 +95,7 @@ export default function TravelAssignmentModal({
               </select>
             </label>
             <fieldset className="col-span-full m-0 min-w-0 border-0 p-0">
-              <legend className="mb-2 text-[9px] font-bold uppercase tracking-[.05em] text-[#5e6879]">
+              <legend className="mb-2 text-[9px] font-bold uppercase tracking-[.05em] text-[#79666a]">
                 Personnel *
               </legend>
               <input
@@ -108,7 +108,7 @@ export default function TravelAssignmentModal({
               />
             </fieldset>
             <label className="col-span-full grid w-full gap-1.5">
-              <span className="text-[9px] font-bold uppercase tracking-[.05em] text-[#5e6879]">Personnel email *</span>
+              <span className="text-[9px] font-bold uppercase tracking-[.05em] text-[#79666a]">Personnel email *</span>
               <input
                 className={ui.formControl}
                 type="email"
@@ -120,7 +120,7 @@ export default function TravelAssignmentModal({
               />
             </label>
             <label className="col-span-full grid w-full gap-1.5">
-              <span className="text-[9px] font-bold uppercase tracking-[.05em] text-[#5e6879]">Notes</span>
+              <span className="text-[9px] font-bold uppercase tracking-[.05em] text-[#79666a]">Notes</span>
               <textarea className={`${ui.formControl} resize-y`} name="notes" value={form.notes} onChange={change} rows="3" />
             </label>
           </div>

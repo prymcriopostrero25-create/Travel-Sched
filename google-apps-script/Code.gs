@@ -4,23 +4,8 @@
  * Before deployment, open Project Settings > Script properties and add:
  *   ACCESS_CODE: a long random value you also put in the React .env.local file
  *   CALENDAR_ID: primary, or a shared calendar's Calendar ID (optional)
- *   PERSONNEL_EMAILS: JSON object mapping personnel names to email addresses
- *     Example: {"Albert Rio":"albert@example.com","Clifford Jay":"clifford@example.com"}
  * Also add the Google Calendar API and Gmail API under Services in the Apps Script editor.
  */
-const DEFAULT_PERSONNEL_EMAILS = {
-  'Albert Rio': 'atrinidad@ched.gov.ph',
-  'Clifford Jay': 'cjimenez@ched.gov.ph',
-  'Czharlyz Nicole': 'cnmanalang@ched.gov.ph',
-  'Duke Vincent Paul': 'dvpdayata@ched.gov.ph',
-  'Ian Christopher': 'icmangubat@ched.gov.ph',
-  'Atty.Lisha': 'lvillacanas@ched.gov.ph',
-  'Marc Anthony': 'maespiritu@ched.gov.ph',
-  'Marvin Harrould': 'mhkho@ched.gov.ph',
-  'Regine Mae': 'rmgonzales@ched.gov.ph',
-  'Von Francis': 'vflavictoria@ched.gov.ph'
-};
-
 const EVENT_COLORS_BY_ID = {
   '1': CalendarApp.EventColor.PALE_BLUE,
   '2': CalendarApp.EventColor.PALE_GREEN,
@@ -223,7 +208,7 @@ function doPost(request) {
         .filter(Boolean)
         .join('\n\n');
       assignedEvent.setDescription(updatedDescription);
-      const emailResult = sendItineraryEmails(assignedEvent, values.personnel, values.notes || '', properties, calendar, values.personnelEmail);
+      const emailResult = sendItineraryEmails(assignedEvent, values.personnel, values.notes || '', calendar, values.personnelEmail);
       return jsonResponse({
         ok: true,
         id: assignedEvent.getId(),
@@ -234,6 +219,10 @@ function doPost(request) {
 
     if (!values.title || !values.start || !values.end || !values.personnel) {
       return jsonResponse({ ok: false, error: 'Title, personnel, start, and end are required.' });
+    }
+
+    if (values.personnelEmail && !isValidEmail(values.personnelEmail)) {
+      return jsonResponse({ ok: false, error: 'A valid personnel email is required.' });
     }
 
     const start = new Date(values.start);
@@ -261,17 +250,26 @@ function doPost(request) {
       event.setColor(EVENT_COLORS_BY_ID[values.colorId]);
     }
     event.setTag('personnel', values.personnel);
-    if (values.personnelEmail) event.addGuest(values.personnelEmail);
+    if (values.personnelEmail) {
+      event.setTag('personnelEmail', values.personnelEmail.trim());
+      event.addGuest(values.personnelEmail.trim());
+    }
+
+    const emailResult = values.personnelEmail
+      ? sendItineraryEmails(event, values.personnel, values.notes || '', calendar, values.personnelEmail, values.purpose || '')
+      : { sent: [], missing: [], failed: [] };
 
     return jsonResponse({
       ok: true,
       id: event.getId(),
+      email: emailResult,
       event: {
         id: event.getId(),
         summary: event.getTitle(),
         location: event.getLocation() || '',
         description: description,
         personnel: values.personnel,
+        personnelEmail: values.personnelEmail ? values.personnelEmail.trim() : '',
         assignmentNotes: values.notes || '',
         guests: [],
         status: 'confirmed',
@@ -325,78 +323,73 @@ function listCalendarEvents(calendarId, start, end) {
   return events;
 }
 
-function sendItineraryEmails(event, personnelValue, assignmentNotes, properties, calendar, directEmail) {
+function sendItineraryEmails(event, personnelValue, assignmentNotes, calendar, directEmail, purpose) {
   const names = String(personnelValue || '')
     .split(',')
     .map(function(name) { return name.trim(); })
     .filter(Boolean);
-  const directoryValue = properties.getProperty('PERSONNEL_EMAILS');
-  let directory = Object.assign({}, DEFAULT_PERSONNEL_EMAILS);
-  try {
-    if (directoryValue) {
-      const configuredDirectory = JSON.parse(directoryValue);
-      Object.keys(configuredDirectory).forEach(function(name) {
-        const email = String(configuredDirectory[name] || '').trim();
-        if (email) directory[name] = email;
-      });
-    }
-  } catch (error) {
-    return { sent: [], missing: names, failed: [], error: 'PERSONNEL_EMAILS is not valid JSON.' };
-  }
-
-  const emailsByName = {};
-  Object.keys(directory).forEach(function(name) {
-    emailsByName[normalizePersonnelKey(name)] = String(directory[name] || '').trim();
-  });
-
   const timeZone = calendar.getTimeZone() || Session.getScriptTimeZone();
-  const dateFormat = event.isAllDayEvent() ? 'EEEE, MMMM d, yyyy' : 'EEEE, MMMM d, yyyy h:mm a';
+  const allDay = event.isAllDayEvent();
+  const dateFormat = 'EEEE, MMMM d, yyyy';
   const start = Utilities.formatDate(event.getStartTime(), timeZone, dateFormat);
-  const end = Utilities.formatDate(event.getEndTime(), timeZone, dateFormat);
+  // All-day end dates are exclusive; display the final included day.
+  const end = Utilities.formatDate(new Date(event.getEndTime().getTime() - (allDay ? 1 : 0)), timeZone, dateFormat);
+  const date = start === end ? start : start + ' to ' + end;
   const subject = 'Travel Itinerary: ' + event.getTitle();
   const sent = [];
   const missing = [];
   const failed = [];
 
-  names.forEach(function(name) {
-    const email = directEmail && names.length === 1
-      ? String(directEmail).trim()
-      : emailsByName[normalizePersonnelKey(name)];
+  // The form provides one recipient address. Send one itinerary for all personnel.
+  const name = names.join(', ') || 'Personnel';
+  try {
+    const email = String(directEmail || '').trim();
     if (!email) {
-      missing.push(name);
-      return;
+      return { sent: [], missing: names, failed: [] };
     }
     const textBody = [
-      'Hello ' + name + ',',
+      'Dear ' + name + ',',
       '',
-      'Here is your official travel itinerary:',
+      'Your travel schedule has been recorded. Please review the event details below:',
       'Travel: ' + event.getTitle(),
-      'Start: ' + start,
-      'End: ' + end,
+      'Personnel: ' + name,
+      'Date: ' + date,
       'Location: ' + (event.getLocation() || 'Not specified'),
+      purpose ? 'Purpose: ' + purpose : '',
       assignmentNotes ? 'Notes: ' + assignmentNotes : '',
       '',
-      'This is an automated message from the Personnel Travel System.'
-    ].filter(Boolean).join('\n');
+      'Please verify these details and contact the coordinating office if any changes are required.',
+      '',
+      'Respectfully,',
+      'J.H. Cerilles State College Office of the President',
+      'This is an automated notification.'
+    ].join('\n');
     const htmlBody = [
-      '<p>Hello ' + escapeHtml(name) + ',</p>',
-      '<p>Here is your official travel itinerary:</p>',
-      '<table style="border-collapse:collapse">',
+      '<!DOCTYPE html><html><body style="margin:0;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif;color:#1e293b">',
+      '<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:32px 12px">',
+      '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;margin:auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">',
+      '<tr><td bgcolor="#68152b" style="background-color:#68152b;background-image:linear-gradient(110deg,#3b0d19 0%,#7c2039 100%);padding:28px 32px;color:#ffffff"><p style="margin:0 0 10px;font-size:12px;letter-spacing:2px;color:#efb8c5">PERSONNEL TRAVEL SYSTEM</p><h1 style="margin:0;font-size:24px">Travel Schedule Notification</h1></td></tr>',
+      '<tr><td style="padding:28px 32px;font-size:15px;line-height:1.7">',
+      '<p style="margin-top:0">Dear ' + escapeHtml(name) + ',</p>',
+      '<p>Your travel schedule has been recorded. Please review the event details below.</p>',
+      '<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:14px">',
       itineraryRow('Travel', event.getTitle()),
-      itineraryRow('Start', start),
-      itineraryRow('End', end),
+      itineraryRow('Personnel', name),
+      itineraryRow('Date', date),
       itineraryRow('Location', event.getLocation() || 'Not specified'),
+      purpose ? itineraryRow('Purpose', purpose) : '',
       assignmentNotes ? itineraryRow('Notes', assignmentNotes) : '',
       '</table>',
-      '<p style="color:#667085;font-size:12px">This is an automated message from the Personnel Travel System.</p>'
+      '<p>Please verify these details and contact the coordinating office if any changes are required.</p>',
+      '<p style="margin-bottom:0">Respectfully,<br><strong>J.H. Cerilles State College Office of the President</strong></p>',
+      '</td></tr><tr><td style="padding:18px 32px;background:#f8fafc;border-top:1px solid #e2e8f0;color:#64748b;font-size:12px">This is an automated notification from the Personnel Travel System.</td></tr>',
+      '</table></td></tr></table></body></html>'
     ].join('');
-    try {
-      sendGmailItinerary(email, subject, textBody, htmlBody);
-      sent.push(name);
-    } catch (error) {
-      failed.push({ name: name, error: error.message || String(error) });
-    }
-  });
+    sendGmailItinerary(email, subject, textBody, htmlBody);
+    sent.push(name);
+  } catch (error) {
+    failed.push({ name: name, error: error.message || String(error) });
+  }
 
   return { sent: sent, missing: missing, failed: failed };
 }
@@ -434,14 +427,10 @@ function sendGmailItinerary(recipient, subject, textBody, htmlBody) {
   }, 'me');
 }
 
-function normalizePersonnelKey(value) {
-  return String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-}
-
 function itineraryRow(label, value) {
   return '<tr><th style="border:1px solid #d0d5dd;padding:8px;text-align:left;background:#f2f4f7">' +
     escapeHtml(label) + '</th><td style="border:1px solid #d0d5dd;padding:8px">' +
-    escapeHtml(value) + '</td></tr>';
+    escapeHtml(value).replace(/\r?\n/g, '<br>') + '</td></tr>';
 }
 
 function escapeHtml(value) {

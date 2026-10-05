@@ -1,4 +1,3 @@
-import { resolvePersonnelName } from "../data/personnel"
 
 const GOOGLE_IDENTITY_URL = "https://accounts.google.com/gsi/client"
 const CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.readonly"
@@ -326,7 +325,7 @@ function extractAssignmentNotes(description) {
 
 function normalizePersonnel(value) {
   const names = Array.isArray(value) ? value : String(value || "").split(",")
-  return names.map(resolvePersonnelName).filter(Boolean)
+  return names.map((name) => String(name).trim()).filter(Boolean)
 }
 
 function extractPersonnel(description) {
