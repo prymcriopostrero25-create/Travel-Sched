@@ -80,7 +80,7 @@ export default function ScheduleDetailsModal({
             <p className="mb-0 mt-3 text-[13px] leading-relaxed text-[#8a777b]"><strong className="text-[#4d383d]">{event.title || "Untitled event"}</strong> will be permanently removed from Google Calendar.</p>
             <div className="mt-6 flex justify-center gap-2.5">
               <button type="button" className={`${ui.secondaryButton} min-w-[105px]`} disabled={deleting} onClick={() => setConfirmDelete(false)}>Cancel</button>
-              <button type="button" className="inline-flex min-w-[125px] items-center justify-center gap-2 rounded-[9px] border-0 bg-[#b42318] px-4 py-[11px] text-[11px] font-semibold text-white disabled:cursor-wait disabled:opacity-65" disabled={deleting} onClick={async () => { setDeleting(true); const deleted = await onDelete(event); setDeleting(false); if (deleted) onClose() }}><Icon name="trash" size={15} />{deleting ? "Deleting…" : "Delete event"}</button>
+              <button type="button" className="inline-flex min-w-[125px] items-center justify-center gap-2 rounded-[9px] border-0 bg-[#b42318] px-4 py-[11px] text-[11px] font-semibold text-white disabled:cursor-wait disabled:opacity-65" disabled={deleting} onClick={async () => { setDeleting(true); const deleted = await onDelete(event); setDeleting(false); if (deleted) onClose() }}><Icon name="trash" size={15} />{deleting ? "Deleting…" : "Delete Event"}</button>
             </div>
           </section>
         </div>

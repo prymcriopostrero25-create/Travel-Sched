@@ -878,7 +878,7 @@ export default function TravelCalendar({
                 }}
               >
                 <Icon name="trash" size={15} />
-                {deletingKey ? "Deleting…" : "Delete event"}
+                {deletingKey ? "Deleting…" : "Delete Event"}
               </button>
             </div>
           </section>
