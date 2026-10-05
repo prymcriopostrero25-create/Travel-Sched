@@ -222,6 +222,12 @@ export default function TravelCalendar({
     colorId: "7",
   })
   const [createForm, setCreateForm] = useState(defaultCreateForm)
+  const closeDayModal = () => {
+    setSelected(null)
+    setShowCreateForm(false)
+    setCreateError("")
+    setCreateForm(defaultCreateForm())
+  }
   const updateCreateForm = (field, value) =>
     setCreateForm((form) => ({
       ...form,
@@ -273,8 +279,7 @@ export default function TravelCalendar({
     })
     setCreatingEvent(false)
     if (result?.ok) {
-      setShowCreateForm(false)
-      setSelected(null)
+      closeDayModal()
     } else {
       setCreateError(result?.error || "The event could not be saved.")
     }
@@ -484,7 +489,7 @@ export default function TravelCalendar({
       {selected && (
         <div
           className={ui.backdrop}
-          onMouseDown={(e) => e.target === e.currentTarget && setSelected(null)}
+          onMouseDown={(e) => e.target === e.currentTarget && closeDayModal()}
         >
           <section className="max-h-[calc(100vh-40px)] w-[min(650px,100%)] overflow-auto rounded-[22px] bg-white shadow-[0_28px_90px_#240f145c] max-[520px]:max-h-[calc(100dvh-16px)] max-[520px]:rounded-[16px]">
             <header className="relative flex justify-between gap-3 overflow-hidden bg-gradient-to-br from-[#3c0d19] via-[#591326] to-[#81243d] px-7 py-7 text-white max-[520px]:px-4 max-[520px]:py-5">
@@ -517,11 +522,11 @@ export default function TravelCalendar({
                   disabled={!onCreateEvent}
                   onClick={openCreateForm}
                 >
-                  <Icon name="plus" size={15} /> Add event
+                  <Icon name="plus" size={15} /> Add Event
                 </button>
                 <button
                   className="grid size-9 place-items-center rounded-full border-0 bg-white/10 text-white hover:bg-white/20"
-                  onClick={() => setSelected(null)}
+                  onClick={closeDayModal}
                   aria-label="Close daily itinerary"
                 >
                   <Icon name="close" />
@@ -536,7 +541,7 @@ export default function TravelCalendar({
                 >
                   <div className="mb-3 flex items-center justify-between gap-3">
                     <h4 className="m-0 font-[Manrope] text-sm font-extrabold text-[#442b31]">
-                      Add calendar event
+                      Add Calendar Event
                     </h4>
                     <button
                       type="button"
@@ -608,7 +613,7 @@ export default function TravelCalendar({
                         onClick={() => setCreateForm((form) => ({ ...form, personnelEntries: [...form.personnelEntries, { name: "", email: "" }] }))}
                         aria-label="Add another personnel"
                       >
-                        <Icon name="plus" size={15} /> Add personnel
+                        <Icon name="plus" size={15} /> Add Personnel
                       </button>
                     </div>
                     {createForm.personnelEntries.map((entry, index) => (
@@ -659,7 +664,7 @@ export default function TravelCalendar({
                   </div>
                   <div className="mt-4">
                     <span className="mb-2 block text-[9px] font-bold uppercase tracking-[.05em] text-[#856f74]">
-                      Event color
+                      Event Color
                     </span>
                     <div className="flex flex-wrap gap-2">
                       {GOOGLE_EVENT_COLORS.map((color) => (
@@ -699,14 +704,14 @@ export default function TravelCalendar({
                       disabled={creatingEvent}
                     >
                       <Icon name="check" size={15} />
-                      {creatingEvent ? "Saving..." : "Save event"}
+                      {creatingEvent ? "Saving..." : "Save Event"}
                     </button>
                   </div>
                 </form>
               )}
               {selected.events.length ? (
                 selected.events.map((event, index) => {
-                  const timeLabel = hasDisplayTime(event) ? displayTime(event) : "All day"
+                  const timeLabel = hasDisplayTime(event) ? displayTime(event) : "All Day"
                   return (
                   <article
                     key={`${event.id}-${event.start?.toISOString()}-${index}`}
@@ -727,7 +732,7 @@ export default function TravelCalendar({
                       <p>
                         <Icon name="clock" size={15} />
                         {event.allDay
-                          ? "All day"
+                          ? "All Day"
                           : `${event.start.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })} – ${event.end?.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`}
                       </p>
                       {event.location && (
@@ -757,15 +762,15 @@ export default function TravelCalendar({
                               : undefined
                           }
                           onClick={() => {
-                            setSelected(null)
+                            closeDayModal()
                             onAssign(event)
                           }}
                         >
                           <Icon name="users" size={15} />{" "}
                           {selectedDateIsPast
-                            ? "Past date"
+                            ? "Past Date"
                             : event.personnel?.length
-                              ? "Change assignment"
+                              ? "Change Assignment"
                               : "Assign Personnel"}
                         </button>
                         <button
@@ -773,7 +778,7 @@ export default function TravelCalendar({
                           disabled={deletingKey === `${event.id}-${event.start?.toISOString()}`}
                           onClick={() => setConfirmDelete(event)}
                         >
-                          Delete event
+                          Delete Event
                         </button>
                       </div>
                     </div>
@@ -840,7 +845,7 @@ export default function TravelCalendar({
                   setDeletingKey("")
                   if (deleted) {
                     setConfirmDelete(null)
-                    setSelected(null)
+                    closeDayModal()
                   }
                 }}
               >

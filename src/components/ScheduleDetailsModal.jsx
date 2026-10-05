@@ -64,9 +64,9 @@ export default function ScheduleDetailsModal({
             </div>
             <div className="mt-5 flex flex-wrap gap-2.5">
               <button type="button" className="inline-flex items-center gap-2 rounded-[9px] border-0 bg-[#741b32] px-[15px] py-[11px] text-xs font-bold text-white shadow-[0_5px_14px_#741b3226] hover:-translate-y-px hover:bg-[#590f23] disabled:cursor-not-allowed disabled:bg-[#bfaeb4] disabled:shadow-none disabled:hover:translate-y-0" disabled={!connected || isPast} title={!connected ? "Connect the calendar to edit assignments." : isPast ? "Past assignments cannot be changed." : undefined} onClick={() => { onClose(); onAssign(event) }}>
-                <Icon name="users" size={15} />{people.length ? "Change assignment" : "Assign personnel"}
+                <Icon name="users" size={15} />{people.length ? "Change Assignment" : "Assign Personnel"}
               </button>
-              <button type="button" className="inline-flex items-center rounded-[9px] border border-[#e5a7a7] bg-white px-[15px] py-[11px] text-xs font-bold text-[#b42318] hover:bg-[#fff1f0] disabled:cursor-not-allowed disabled:opacity-50" disabled={!connected || deleting} onClick={() => setConfirmDelete(true)}>Delete event</button>
+              <button type="button" className="inline-flex items-center rounded-[9px] border border-[#e5a7a7] bg-white px-[15px] py-[11px] text-xs font-bold text-[#b42318] hover:bg-[#fff1f0] disabled:cursor-not-allowed disabled:opacity-50" disabled={!connected || deleting} onClick={() => setConfirmDelete(true)}>Delete Event</button>
             </div>
           </article>
         </div>
