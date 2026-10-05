@@ -2,7 +2,15 @@ import { useState } from "react"
 import Icon from "./Icon"
 import { ui } from "../styles"
 
-const initialForm = { eventKey: "", personnel: [], personnelEmail: "", notes: "" }
+const personnelEntriesFor = (event) => {
+  const names = event?.personnel || []
+  const emails = String(event?.personnelEmail || "").split(",").map((email) => email.trim())
+  return Array.from({ length: Math.max(names.length, emails.filter(Boolean).length, 1) }, (_, index) => ({
+    name: names[index] || "",
+    email: emails[index] || "",
+  }))
+}
+const initialForm = { eventKey: "", personnelEntries: personnelEntriesFor(null), notes: "" }
 
 export default function TravelAssignmentModal({
   open,
@@ -16,22 +24,28 @@ export default function TravelAssignmentModal({
   const [form, setForm] = useState(() => ({
     ...initialForm,
     eventKey: selectedEvent ? `${selectedEvent.id}::${selectedEvent.start?.toISOString()}` : "",
-    personnel: selectedEvent?.personnel || [],
-    personnelEmail: selectedEvent?.personnelEmail || "",
+    personnelEntries: personnelEntriesFor(selectedEvent),
     notes: selectedEvent?.assignmentNotes || "",
   }))
   const isEditing = Boolean(selectedEvent?.personnel?.length)
   if (!open) return null
   const change = (event) => setForm({ ...form, [event.target.name]: event.target.value })
   const changeCalendarEvent = (input) => {
+    const selected = events.find((event) => `${event.id}::${event.start?.toISOString()}` === input.target.value)
     setForm((current) => ({
       ...current,
       eventKey: input.target.value,
+      personnelEntries: personnelEntriesFor(selected),
+      notes: selected?.assignmentNotes || "",
     }))
   }
+  const changePersonnel = (index, field, value) => setForm((current) => ({
+    ...current,
+    personnelEntries: current.personnelEntries.map((entry, entryIndex) => entryIndex === index ? { ...entry, [field]: value } : entry),
+  }))
   const submit = async (event) => {
     event.preventDefault()
-    if (!form.personnel.length) return
+    if (saving || form.personnelEntries.some((entry) => !entry.name.trim())) return
     const [eventId, eventStart] = form.eventKey.split("::")
     const selected = events.find(
       (calendarEvent) =>
@@ -42,7 +56,8 @@ export default function TravelAssignmentModal({
       ...form,
       eventId,
       eventStart,
-      personnel: form.personnel.join(", "),
+      personnel: form.personnelEntries.map((entry) => entry.name.trim()).join(", "),
+      personnelEmail: [...new Set(form.personnelEntries.map((entry) => entry.email.trim()).filter(Boolean))].join(", "),
     })
     if (success) {
       setForm(initialForm)
@@ -94,31 +109,42 @@ export default function TravelAssignmentModal({
                 ))}
               </select>
             </label>
-            <fieldset className="col-span-full m-0 min-w-0 border-0 p-0">
-              <legend className="mb-2 text-[9px] font-bold uppercase tracking-[.05em] text-[#79666a]">
-                Personnel *
-              </legend>
+            <div className="col-span-full flex items-center justify-between">
+              <span className="text-[9px] font-bold uppercase tracking-[.05em] text-[#79666a]">Assigned personnel</span>
+              <button type="button" disabled={saving} className={`${ui.secondaryButton} flex items-center gap-1.5`} onClick={() => setForm((current) => ({ ...current, personnelEntries: [...current.personnelEntries, { name: "", email: "" }] }))} aria-label="Add another personnel">
+                <Icon name="plus" size={15} /> Add personnel
+              </button>
+            </div>
+            {form.personnelEntries.map((entry, index) => (
+            <div key={index} className="col-span-full grid gap-3 rounded-[10px] border border-[#eee6e8] p-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-[#741b32]">Personnel {index + 1}</span>
+                {index > 0 && <button type="button" disabled={saving} className={ui.textButton} aria-label={`Remove personnel ${index + 1}`} onClick={() => setForm((current) => ({ ...current, personnelEntries: current.personnelEntries.filter((_, entryIndex) => entryIndex !== index) }))}><Icon name="close" size={15} /></button>}
+              </div>
+              <label className="grid gap-1.5">
+              <span className="text-[9px] font-bold uppercase tracking-[.05em] text-[#79666a]">Personnel *</span>
               <input
                 className={ui.formControl}
-                name="personnel"
-                value={form.personnel.join(", ")}
-                onChange={(event) => setForm((current) => ({ ...current, personnel: [event.target.value] }))}
+                name={`personnel-${index}`}
+                value={entry.name}
+                onChange={(event) => changePersonnel(index, "name", event.target.value)}
                 placeholder="Type the assigned personnel name"
                 required
               />
-            </fieldset>
-            <label className="col-span-full grid w-full gap-1.5">
-              <span className="text-[9px] font-bold uppercase tracking-[.05em] text-[#79666a]">Personnel email *</span>
+              </label>
+            <label className="grid w-full gap-1.5">
+              <span className="text-[9px] font-bold uppercase tracking-[.05em] text-[#79666a]">Personnel email</span>
               <input
                 className={ui.formControl}
                 type="email"
-                name="personnelEmail"
-                value={form.personnelEmail}
-                onChange={change}
+                name={`personnelEmail-${index}`}
+                value={entry.email}
+                onChange={(event) => changePersonnel(index, "email", event.target.value)}
                 placeholder="name@example.com"
-                required
               />
             </label>
+            </div>
+            ))}
             <label className="col-span-full grid w-full gap-1.5">
               <span className="text-[9px] font-bold uppercase tracking-[.05em] text-[#79666a]">Notes</span>
               <textarea className={`${ui.formControl} resize-y`} name="notes" value={form.notes} onChange={change} rows="3" />
@@ -131,7 +157,7 @@ export default function TravelAssignmentModal({
             </button>
             <button
               className={ui.primaryButton}
-              disabled={saving || !form.personnel.length || !form.eventKey}
+              disabled={saving || form.personnelEntries.some((entry) => !entry.name.trim()) || !form.eventKey}
             >
               <Icon name="calendar" size={17} />
               {saving

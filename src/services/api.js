@@ -107,6 +107,7 @@ export async function createCalendarEvent(event) {
     notes: event.notes || "",
   })
   if (!event.eventId) {
+    body.set("requestId", crypto.randomUUID())
     body.set("title", event.title || "Official Travel")
     body.set("start", new Date(event.start).toISOString())
     body.set("end", new Date(event.end).toISOString())
@@ -115,12 +116,36 @@ export async function createCalendarEvent(event) {
     body.set("colorId", event.colorId || "")
     body.set("allDay", event.allDay ? "true" : "")
   }
-  const response = await fetch(endpoint, { method: "POST", body })
-  const payload = await readJsonResponse(response)
-  if (!response.ok) {
-    throw new Error(payload.error || `Apps Script request failed (${response.status}).`)
+  let payload
+  try {
+    const writeUrl = new URL(endpoint, window.location.origin)
+    writeUrl.searchParams.set("code", body.get("code"))
+    const response = await fetch(writeUrl, { method: "POST", body })
+    payload = await readJsonResponse(response)
+    if (!response.ok) {
+      throw new Error(payload.error || `Apps Script request failed (${response.status}).`)
+    }
+  } catch (error) {
+    if (!event.eventId) {
+      // Recover Google's exact saved result without repeating the write or email.
+      const resultUrl = new URL(endpoint, window.location.origin)
+      resultUrl.searchParams.set("code", body.get("code"))
+      resultUrl.searchParams.set("action", "result")
+      resultUrl.searchParams.set("requestId", body.get("requestId"))
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        try {
+          const resultResponse = await fetch(resultUrl)
+          const result = await readJsonResponse(resultResponse)
+          if (resultResponse.ok && result.ok && result.event) return result
+        } catch {
+          // Keep the original write error if confirmation remains unavailable.
+        }
+        if (attempt < 2) await new Promise((resolve) => window.setTimeout(resolve, 2000))
+      }
+    }
+    throw error
   }
-  if (!payload.ok) throw new Error(payload.error || "The travel schedule could not be created.")
+  if (!payload.ok) throw new Error(appsScriptError(payload.error) || "The travel schedule could not be created.")
   return payload
 }
 
@@ -133,12 +158,14 @@ export async function deleteCalendarEvent(event) {
     eventId: event.id || "",
     eventStart: event.start instanceof Date ? event.start.toISOString() : event.start || "",
   })
-  const response = await fetch(endpoint, { method: "POST", body })
+  const writeUrl = new URL(endpoint, window.location.origin)
+  writeUrl.searchParams.set("code", body.get("code"))
+  const response = await fetch(writeUrl, { method: "POST", body })
   const payload = await readJsonResponse(response)
   if (!response.ok) {
     throw new Error(payload.error || `Apps Script request failed (${response.status}).`)
   }
-  if (!payload.ok) throw new Error(payload.error || "The calendar event could not be deleted.")
+  if (!payload.ok) throw new Error(appsScriptError(payload.error) || "The calendar event could not be deleted.")
   return payload
 }
 
@@ -179,6 +206,12 @@ async function getAppsScriptEvents(endpoint, options = {}) {
 function getAppsScriptEndpoint() {
   if (import.meta.env.DEV) return "/calendar-api"
   return import.meta.env.VITE_GOOGLE_APPS_SCRIPT_URL
+}
+
+function appsScriptError(message) {
+  return message === "Unauthorized request."
+    ? "Google rejected the access code. Match ACCESS_CODE in Apps Script Project Settings with VITE_GOOGLE_APPS_SCRIPT_ACCESS_CODE in .env.local, verify the deployment URL, then restart the development server and reload this page."
+    : message
 }
 
 async function readJsonResponse(response) {

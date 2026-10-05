@@ -11,13 +11,13 @@ function appsScriptMiddleware(endpoint) {
         try {
           const localUrl = new URL(request.url || "", "http://localhost")
           const targetUrl = new URL(endpoint)
-          localUrl.searchParams.forEach((value, key) => targetUrl.searchParams.append(key, value))
+          localUrl.searchParams.forEach((value, key) => targetUrl.searchParams.set(key, value))
 
           const method = request.method || "GET"
           const options = {
             method,
             redirect: "follow",
-            signal: AbortSignal.timeout(85000),
+            signal: AbortSignal.timeout(method === "POST" ? 180000 : 85000),
           }
 
           if (method !== "GET" && method !== "HEAD") {

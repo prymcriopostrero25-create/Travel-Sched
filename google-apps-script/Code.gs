@@ -49,6 +49,11 @@ function doGet(request) {
       return jsonResponse({ ok: false, error: 'Unauthorized request.' });
     }
 
+    if (request.parameter.action === 'result' && request.parameter.requestId) {
+      const savedResult = CacheService.getScriptCache().get('create:' + request.parameter.requestId);
+      return jsonResponse(savedResult ? JSON.parse(savedResult) : { ok: false, pending: true });
+    }
+
     const calendarId = properties.getProperty('CALENDAR_ID') || 'primary';
     const now = new Date();
     const defaultStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -167,10 +172,11 @@ function doPost(request) {
     }
 
     if (values.action === 'assign') {
-      if (!values.eventId || !values.personnel || !values.personnelEmail) {
-        return jsonResponse({ ok: false, error: 'Calendar event, personnel, and personnel email are required.' });
+      if (!values.eventId || !values.personnel) {
+        return jsonResponse({ ok: false, error: 'Calendar event and personnel are required.' });
       }
-      if (!isValidEmail(values.personnelEmail)) {
+      const assignmentEmails = String(values.personnelEmail || '').split(',').map(function(email) { return email.trim(); }).filter(Boolean);
+      if (assignmentEmails.some(function(email) { return !isValidEmail(email); })) {
         return jsonResponse({ ok: false, error: 'A valid personnel email is required.' });
       }
       let assignedEvent = calendar.getEventById(values.eventId);
@@ -185,9 +191,6 @@ function doPost(request) {
       }
       if (!assignedEvent) return jsonResponse({ ok: false, error: 'The selected calendar event was not found.' });
 
-      assignedEvent.setTag('personnel', values.personnel);
-      assignedEvent.setTag('personnelEmail', values.personnelEmail);
-      assignedEvent.setTag('assignmentNotes', values.notes || '');
       const legacyMarker = '\n\n--- Personnel Travel Assignment ---';
       let originalDescription = assignedEvent.getTag('originalDescription');
       if (assignedEvent.getTag('assignmentManaged') !== 'true') {
@@ -196,12 +199,41 @@ function doPost(request) {
         assignedEvent.setTag('assignmentManaged', 'true');
       }
 
+      // App-created events used to preserve their first assignment as source text.
+      // Clean that saved source too, so previously edited events are repaired.
+      const appCreated = assignedEvent.getTag('travelCreated') === 'true' || /(?:^|\n)Personnel:/i.test(originalDescription || '');
+      if (appCreated) {
+        assignedEvent.setTag('travelCreated', 'true');
+        originalDescription = (originalDescription || '').split(/\r?\n/)
+          .filter(function(line) { return !/^\s*(?:Personnel:|Notes:|WITH\s+)/i.test(line); })
+          .join('\n').trim();
+        assignedEvent.setTag('originalDescription', originalDescription);
+      }
+      const previousEmails = String(assignedEvent.getTag('personnelEmail') || '').split(',')
+        .map(function(email) { return email.trim().toLowerCase(); }).filter(Boolean);
+      const wantedEmails = assignmentEmails.map(function(email) { return email.toLowerCase(); });
+      const currentGuests = assignedEvent.getGuestList().map(function(guest) { return guest.getEmail(); });
+      currentGuests.forEach(function(email) {
+        const normalized = email.toLowerCase();
+        if ((appCreated || previousEmails.indexOf(normalized) !== -1) && wantedEmails.indexOf(normalized) === -1) {
+          assignedEvent.removeGuest(email);
+        }
+      });
+      assignmentEmails.forEach(function(email) {
+        if (!currentGuests.some(function(current) { return current.toLowerCase() === email.toLowerCase(); })) {
+          assignedEvent.addGuest(email);
+        }
+      });
+      assignedEvent.setTag('personnel', values.personnel);
+      assignedEvent.setTag('personnelEmail', assignmentEmails.join(', '));
+      assignedEvent.setTag('assignmentNotes', values.notes || '');
+
       const names = values.personnel
         .split(',')
         .map(function(name) { return name.trim().toUpperCase(); })
         .filter(Boolean);
       const assignmentLines = [
-        'WITH ' + names.join(' AND '),
+        appCreated ? 'Personnel: ' + values.personnel : 'WITH ' + names.join(' AND '),
         values.notes ? 'Notes: ' + values.notes : ''
       ].filter(Boolean);
       const updatedDescription = [originalDescription, assignmentLines.join('\n')]
@@ -221,7 +253,8 @@ function doPost(request) {
       return jsonResponse({ ok: false, error: 'Title, personnel, start, and end are required.' });
     }
 
-    if (values.personnelEmail && !isValidEmail(values.personnelEmail)) {
+    const personnelEmails = String(values.personnelEmail || '').split(',').map(function(email) { return email.trim(); }).filter(Boolean);
+    if (personnelEmails.some(function(email) { return !isValidEmail(email); })) {
       return jsonResponse({ ok: false, error: 'A valid personnel email is required.' });
     }
 
@@ -250,16 +283,17 @@ function doPost(request) {
       event.setColor(EVENT_COLORS_BY_ID[values.colorId]);
     }
     event.setTag('personnel', values.personnel);
+    event.setTag('travelCreated', 'true');
     if (values.personnelEmail) {
       event.setTag('personnelEmail', values.personnelEmail.trim());
-      event.addGuest(values.personnelEmail.trim());
+      personnelEmails.forEach(function(email) { event.addGuest(email); });
     }
 
     const emailResult = values.personnelEmail
       ? sendItineraryEmails(event, values.personnel, values.notes || '', calendar, values.personnelEmail, values.purpose || '')
       : { sent: [], missing: [], failed: [] };
 
-    return jsonResponse({
+    const createdResult = {
       ok: true,
       id: event.getId(),
       email: emailResult,
@@ -282,7 +316,11 @@ function doPost(request) {
           : { dateTime: end.toISOString() }
       },
       message: 'Travel schedule created.'
-    });
+    };
+    if (values.requestId) {
+      CacheService.getScriptCache().put('create:' + values.requestId, JSON.stringify(createdResult), 21600);
+    }
+    return jsonResponse(createdResult);
   } catch (error) {
     return jsonResponse({ ok: false, error: error.message || String(error) });
   }
@@ -324,6 +362,7 @@ function listCalendarEvents(calendarId, start, end) {
 }
 
 function sendItineraryEmails(event, personnelValue, assignmentNotes, calendar, directEmail, purpose) {
+  const recipients = Array.from(new Set(String(directEmail || '').split(',').map(function(email) { return email.trim(); }).filter(Boolean)));
   const names = String(personnelValue || '')
     .split(',')
     .map(function(name) { return name.trim(); })
@@ -340,10 +379,10 @@ function sendItineraryEmails(event, personnelValue, assignmentNotes, calendar, d
   const missing = [];
   const failed = [];
 
-  // The form provides one recipient address. Send one itinerary for all personnel.
+  // Send one shared itinerary with all personnel addresses in the To header.
   const name = names.join(', ') || 'Personnel';
   try {
-    const email = String(directEmail || '').trim();
+    const email = recipients.join(', ');
     if (!email) {
       return { sent: [], missing: names, failed: [] };
     }

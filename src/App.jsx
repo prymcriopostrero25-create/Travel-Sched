@@ -358,6 +358,7 @@ export default function App() {
               ? {
                   ...event,
                   personnel,
+                  personnelEmail: form.personnelEmail || "",
                   assignmentNotes: form.notes || "",
                   description: form.notes ? `Notes: ${form.notes}` : "",
                 }
@@ -373,7 +374,7 @@ export default function App() {
       const missingNames = result.email?.missing || []
       const failedEmails = result.email?.failed || []
       const emailMessage = sentCount
-        ? ` Itinerary email${sentCount === 1 ? " was" : "s were"} sent to ${sentCount} personnel.`
+        ? ` One itinerary email was sent to ${form.personnelEmail}, with all recipients in To.`
         : " No itinerary emails were sent."
       const missingMessage = missingNames.length
         ? ` No configured email was available for: ${missingNames.join(", ")}.`

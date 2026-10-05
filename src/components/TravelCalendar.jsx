@@ -216,8 +216,7 @@ export default function TravelCalendar({
     startTime: "",
     endDate: defaultDateValue,
     location: "",
-    personnel: "",
-    personnelEmail: "",
+    personnelEntries: [{ name: "", email: "" }],
     purpose: "",
     notes: "",
     colorId: "7",
@@ -233,6 +232,14 @@ export default function TravelCalendar({
     setCreateForm(defaultCreateForm())
     setShowCreateForm(true)
   }
+  const updatePersonnelEntry = (index, field, value) => {
+    setCreateForm((form) => ({
+      ...form,
+      personnelEntries: form.personnelEntries.map((entry, entryIndex) =>
+        entryIndex === index ? { ...entry, [field]: value } : entry,
+      ),
+    }))
+  }
   const submitCreateForm = async (event) => {
     event.preventDefault()
     if (!onCreateEvent || creatingEvent) return
@@ -242,7 +249,7 @@ export default function TravelCalendar({
       ? new Date(`${startDate}T00:00`)
       : new Date(`${startDate}T${createForm.startTime}`)
     const end = new Date(new Date(`${createForm.endDate}T00:00`).getTime() + 86400000)
-    if (!createForm.title.trim() || !createForm.personnel.trim()) {
+    if (!createForm.title.trim() || createForm.personnelEntries.some((entry) => !entry.name.trim())) {
       setCreateError("Title and personnel are required.")
       return
     }
@@ -257,8 +264,8 @@ export default function TravelCalendar({
       start,
       end,
       location: createForm.location.trim(),
-      personnel: createForm.personnel.trim(),
-      personnelEmail: createForm.personnelEmail.trim(),
+      personnel: createForm.personnelEntries.map((entry) => entry.name.trim()).join(", "),
+      personnelEmail: [...new Set(createForm.personnelEntries.map((entry) => entry.email.trim()).filter(Boolean))].join(", "),
       purpose: createForm.purpose.trim(),
       notes: createForm.notes.trim(),
       colorId: createForm.colorId,
@@ -593,33 +600,52 @@ export default function TravelCalendar({
                         placeholder="Destination or venue"
                       />
                     </label>
-                    <label className="col-span-2 grid gap-1.5 max-[520px]:col-span-1">
+                    <div className="col-span-2 flex items-center justify-between max-[520px]:col-span-1">
+                      <span className="text-[9px] font-bold uppercase tracking-[.05em] text-[#856f74]">Assigned personnel</span>
+                      <button
+                        type="button"
+                        className={`${ui.secondaryButton} flex items-center gap-1.5`}
+                        onClick={() => setCreateForm((form) => ({ ...form, personnelEntries: [...form.personnelEntries, { name: "", email: "" }] }))}
+                        aria-label="Add another personnel"
+                      >
+                        <Icon name="plus" size={15} /> Add personnel
+                      </button>
+                    </div>
+                    {createForm.personnelEntries.map((entry, index) => (
+                    <div key={index} className="col-span-2 grid gap-3 rounded-[10px] border border-[#eee6e8] p-3 max-[520px]:col-span-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-[#741b32]">Personnel {index + 1}</span>
+                      {index > 0 && <button type="button" className={ui.textButton} aria-label={`Remove personnel ${index + 1}`} onClick={() => setCreateForm((form) => ({ ...form, personnelEntries: form.personnelEntries.filter((_, entryIndex) => entryIndex !== index) }))}><Icon name="close" size={15} /></button>}
+                    </div>
+                    <label className="grid gap-1.5">
                       <span className="text-[9px] font-bold uppercase tracking-[.05em] text-[#856f74]">
                         Personnel *
                       </span>
                       <input
                         className={ui.formControl}
                         type="text"
-                        name="personnel"
-                        value={createForm.personnel}
-                        onChange={(e) => updateCreateForm("personnel", e.target.value)}
+                        name={`personnel-${index}`}
+                        value={entry.name}
+                        onChange={(e) => updatePersonnelEntry(index, "name", e.target.value)}
                         placeholder="Type the assigned personnel name"
                         required
                       />
                     </label>
-                    <label className="col-span-2 grid gap-1.5 max-[520px]:col-span-1">
+                    <label className="grid gap-1.5">
                       <span className="text-[9px] font-bold uppercase tracking-[.05em] text-[#856f74]">
                         Personnel email
                       </span>
                       <input
                         className={ui.formControl}
                         type="email"
-                        name="personnelEmail"
-                        value={createForm.personnelEmail}
-                        onChange={(e) => updateCreateForm("personnelEmail", e.target.value)}
+                        name={`personnelEmail-${index}`}
+                        value={entry.email}
+                        onChange={(e) => updatePersonnelEntry(index, "email", e.target.value)}
                         placeholder="name@example.com"
                       />
                     </label>
+                    </div>
+                    ))}
                     <label className="col-span-2 grid gap-1.5 max-[520px]:col-span-1">
                       <span className="text-[9px] font-bold uppercase tracking-[.05em] text-[#856f74]">
                         Notes
