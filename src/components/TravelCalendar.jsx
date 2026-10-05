@@ -381,7 +381,7 @@ export default function TravelCalendar({
                   onKeyDown={(e) => e.key === "Enter" && openDay(date)}
                 >
                   <span
-                    className={`mb-[7px] grid size-[28px] place-items-center rounded-[9px] text-[12px] font-bold ${today ? "bg-[#741b32] text-white shadow-[0_4px_10px_#741b322e]" : past ? "text-[#c1b3b7] blur-[.3px]" : "text-[#624b51]"}`}
+                    className={`mb-[7px] grid size-[28px] place-items-center rounded-[9px] text-[12px] font-bold ${outside ? "text-[#c1b3b7]" : today ? "bg-[#741b32] text-white shadow-[0_4px_10px_#741b322e]" : past ? "text-[#c1b3b7] blur-[.3px]" : "text-[#624b51]"}`}
                   >
                     {date.getDate()}
                   </span>
@@ -460,7 +460,7 @@ export default function TravelCalendar({
                 onClick={() => openDay(date)}
                 aria-label={`${date.toLocaleDateString("en-US", { month: "long", day: "numeric" })}, ${dayEvents.length} event${dayEvents.length === 1 ? "" : "s"}`}
               >
-                <span className={`grid size-7 place-items-center rounded-full text-[11px] font-bold ${today ? "bg-[#741b32] text-white" : ""}`}>
+                <span className={`grid size-7 place-items-center rounded-full text-[11px] font-bold ${outside ? "text-[#c1b3b7]" : today ? "bg-[#741b32] text-white" : ""}`}>
                   {date.getDate()}
                 </span>
                 {dayEvents.length > 0 && (
