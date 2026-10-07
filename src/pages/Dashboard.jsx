@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Icon from "../components/Icon"
 import { ui } from "../styles"
 
@@ -60,20 +60,7 @@ export default function Dashboard({
     }
   }, [])
   const fitBoard = boardSize.width > 1000
-  const [dayCapacity, setDayCapacity] = useState(1)
-  const upcomingGrid = useRef(null)
-  useEffect(() => {
-    if (!fitBoard || !upcomingGrid.current) return undefined
-    const grid = upcomingGrid.current
-    const measure = () => {
-      const column = grid.querySelector(".board-day-events")
-      if (column) setDayCapacity(Math.max(1, Math.min(2, Math.floor((column.clientHeight + 10) / 200))))
-    }
-    const observer = new ResizeObserver(measure)
-    observer.observe(grid)
-    measure()
-    return () => observer.disconnect()
-  }, [fitBoard])
+  const dayCapacity = 1
   const pageEvents = (events, capacity, dayKey = "") => {
     if (!fitBoard) return events
     const offset = ((boardPage + (dayPageOffsets[dayKey] || 0)) % Math.max(1, Math.ceil(events.length / capacity))) * capacity
@@ -232,7 +219,7 @@ export default function Dashboard({
             {upcomingDays[0].start.toLocaleDateString("en-US", { month: "short", day: "numeric" })} - {upcomingDays[2].start.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
           </span>
         </header>
-        <div ref={upcomingGrid} className="dashboard-days grid grid-cols-3 gap-5 p-5 max-[1000px]:grid-cols-1">
+        <div className="dashboard-days grid grid-cols-3 gap-5 p-5 max-[1000px]:grid-cols-1">
           {upcomingDays.map(({ start, events }) => (
             <section key={start.toISOString()} className="min-w-0">
               <div className="board-day-heading">
