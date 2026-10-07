@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import Icon from "../components/Icon"
 import { ui } from "../styles"
 
@@ -48,6 +48,7 @@ export default function Dashboard({
 }) {
   const [now, setNow] = useState(() => new Date())
   const [boardPage, setBoardPage] = useState(0)
+  const [dayPageOffsets, setDayPageOffsets] = useState({})
   const [boardSize, setBoardSize] = useState(() => ({ width: window.innerWidth, height: window.innerHeight }))
   useEffect(() => {
     const resize = () => setBoardSize({ width: window.innerWidth, height: window.innerHeight })
@@ -59,14 +60,27 @@ export default function Dashboard({
     }
   }, [])
   const fitBoard = boardSize.width > 1000
-  const dayCapacity = boardSize.height < 800 ? 1 : 2
-  const pageEvents = (events, capacity) => {
+  const [dayCapacity, setDayCapacity] = useState(1)
+  const upcomingGrid = useRef(null)
+  useEffect(() => {
+    if (!fitBoard || !upcomingGrid.current) return undefined
+    const grid = upcomingGrid.current
+    const measure = () => {
+      const column = grid.querySelector(".board-day-events")
+      if (column) setDayCapacity(Math.max(1, Math.min(2, Math.floor((column.clientHeight + 10) / 170))))
+    }
+    const observer = new ResizeObserver(measure)
+    observer.observe(grid)
+    measure()
+    return () => observer.disconnect()
+  }, [fitBoard])
+  const pageEvents = (events, capacity, dayKey = "") => {
     if (!fitBoard) return events
-    const offset = (boardPage % Math.max(1, Math.ceil(events.length / capacity))) * capacity
+    const offset = ((boardPage + (dayPageOffsets[dayKey] || 0)) % Math.max(1, Math.ceil(events.length / capacity))) * capacity
     return events.slice(offset, offset + capacity)
   }
-  const pageLabel = (events, capacity) => events.length > capacity && fitBoard
-    ? `Page ${boardPage % Math.ceil(events.length / capacity) + 1} of ${Math.ceil(events.length / capacity)} - rotates automatically`
+  const pageLabel = (events, capacity, dayKey = "") => events.length > capacity && fitBoard
+    ? `Page ${(boardPage + (dayPageOffsets[dayKey] || 0)) % Math.ceil(events.length / capacity) + 1} of ${Math.ceil(events.length / capacity)} - rotates automatically`
     : ""
   const [selectedEvent, setSelectedEvent] = useState(null)
   const selectedEventLink = webLink(selectedEvent?.location)
@@ -218,7 +232,7 @@ export default function Dashboard({
             {upcomingDays[0].start.toLocaleDateString("en-US", { month: "short", day: "numeric" })} - {upcomingDays[2].start.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
           </span>
         </header>
-        <div className="dashboard-days grid grid-cols-3 gap-5 p-5 max-[1000px]:grid-cols-1">
+        <div ref={upcomingGrid} className="dashboard-days grid grid-cols-3 gap-5 p-5 max-[1000px]:grid-cols-1">
           {upcomingDays.map(({ start, events }) => (
             <section key={start.toISOString()} className="min-w-0">
               <div className="board-day-heading">
@@ -228,9 +242,26 @@ export default function Dashboard({
                   <h3>{start.toLocaleDateString("en-US", { month: "long", year: "numeric" })}</h3>
                 </div>
                 <span className="board-day-count">{events.length} event{events.length === 1 ? "" : "s"}</span>
+              {pageLabel(events, dayCapacity, start.toISOString()) && (
+                <div className="board-page-controls">
+                  <span className="board-page-indicator" title="Advances automatically every 12 seconds">{(boardPage + (dayPageOffsets[start.toISOString()] || 0)) % Math.ceil(events.length / dayCapacity) + 1}/{Math.ceil(events.length / dayCapacity)}</span>
+                  <button
+                    type="button"
+                    className="board-next-button"
+                    aria-label={`Next events for ${start.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}`}
+                    title="Next events"
+                    onClick={() => setDayPageOffsets((offsets) => ({
+                      ...offsets,
+                      [start.toISOString()]: (offsets[start.toISOString()] || 0) + 1,
+                    }))}
+                  >
+                    <Icon name="chevron" size={20} />
+                  </button>
+                </div>
+              )}
               </div>
               <div className="board-day-events space-y-3">
-                {events.length ? pageEvents(events, dayCapacity).map((event, index) => (
+                {events.length ? pageEvents(events, dayCapacity, start.toISOString()).map((event, index) => (
                   <button key={`${event.id}-${index}`} type="button" onClick={() => setSelectedEvent(event)}
                     className="block w-full rounded-[12px] border border-[#eee6e8] bg-[#fdfafb] p-4 text-left transition hover:border-[#d8a9b6] hover:bg-[#faf2f4]">
                     <span className="mb-2 flex items-center gap-2 text-[10px] font-semibold text-[#93445a]"><Icon name="clock" size={13} />{eventTime(event)}</span>
@@ -240,7 +271,7 @@ export default function Dashboard({
                   </button>
                 )) : <p className="m-0 rounded-[12px] bg-[#fdfafb] p-4 text-[11px] text-[#806c75]">{calendar.loading ? "Checking calendar..." : "No events scheduled."}</p>}
               </div>
-              {pageLabel(events, dayCapacity) && <p className="board-rotation">{pageLabel(events, dayCapacity)}</p>}
+
             </section>
           ))}
         </div>

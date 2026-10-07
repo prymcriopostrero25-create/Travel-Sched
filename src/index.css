@@ -313,3 +313,25 @@
   .board-day-label { font-size: 16px; }
   .board-day-count { font-size: 11px; }
 }
+
+.board-page-controls { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-shrink: 0; margin-top: 8px; }
+.dashboard-days .board-page-controls .board-rotation { margin: 0; }
+.dashboard-days .board-next-button { display: grid; place-items: center; flex: 0 0 36px; width: 36px; height: 36px; padding: 0; border: 1px solid #e6d5dd; border-radius: 50%; background: #faf2f5; color: #741b32; box-shadow: none; }
+.dashboard-days .board-next-button:hover { background: #741b32; color: white; border-color: #741b32; }
+
+/* Keep navigation in the day heading so it never compresses event details. */
+.board-day-heading .board-page-controls { margin: 0; gap: 6px; }
+.board-page-indicator { font-size: 11px; color: #796a70; white-space: nowrap; }
+.board-day-heading .board-next-button { width: 32px; height: 32px; flex-basis: 32px; }
+@media (min-width: 1001px) {
+  .dashboard-refresh { gap: 12px; }
+  .board-live-heading { padding: 10px 20px; }
+  .board-live-heading .board-eyebrow { display: none; }
+  .dashboard-live-list { padding: 10px; }
+  .dashboard-live-list button { padding: 10px 14px; }
+  .dashboard-live-list button strong { font-size: 20px; }
+  .dashboard-upcoming > header { padding: 10px 20px; }
+  .dashboard-days { padding: 12px 18px; }
+  .board-day-events > button { flex: 0 0 auto; min-height: 150px; }
+  .board-day-heading { margin-bottom: 10px; padding-bottom: 8px; }
+}
