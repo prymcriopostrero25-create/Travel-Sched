@@ -15,12 +15,19 @@ const eventTime = (event) => {
   return [start, end].filter(Boolean).join(" – ")
 }
 
+const isHappeningNow = (event, now) => {
+  if (!event.start || event.start > now) return false
+  const end = event.end || new Date(event.start.getFullYear(), event.start.getMonth(), event.start.getDate() + 1)
+  return now < end
+}
+
 const eventTiming = (event, now) => {
-  if (event.allDay || (event.start <= now && (!event.end || event.end >= now))) {
+  if (isHappeningNow(event, now)) {
     return { label: "Happening now", className: "bg-[#e7f8f1] text-[#15996a]" }
   }
   if (event.start > now) {
-    return { label: "Later today", className: "bg-[#f8edf0] text-[#741b32]" }
+    const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
+    return { label: event.start < tomorrow ? "Today" : "Upcoming", className: "bg-[#f8edf0] text-[#741b32]" }
   }
   return { label: "Ended", className: "bg-[#f3eff0] text-[#938286]" }
 }
@@ -37,10 +44,30 @@ const webLink = (value) => {
 
 export default function Dashboard({
   calendar,
-  openTravelModal,
   refreshCalendar,
 }) {
   const [now, setNow] = useState(() => new Date())
+  const [boardPage, setBoardPage] = useState(0)
+  const [boardSize, setBoardSize] = useState(() => ({ width: window.innerWidth, height: window.innerHeight }))
+  useEffect(() => {
+    const resize = () => setBoardSize({ width: window.innerWidth, height: window.innerHeight })
+    window.addEventListener("resize", resize)
+    const rotation = window.setInterval(() => setBoardPage((page) => page + 1), 12000)
+    return () => {
+      window.removeEventListener("resize", resize)
+      window.clearInterval(rotation)
+    }
+  }, [])
+  const fitBoard = boardSize.width > 1000
+  const dayCapacity = boardSize.height < 800 ? 1 : 2
+  const pageEvents = (events, capacity) => {
+    if (!fitBoard) return events
+    const offset = (boardPage % Math.max(1, Math.ceil(events.length / capacity))) * capacity
+    return events.slice(offset, offset + capacity)
+  }
+  const pageLabel = (events, capacity) => events.length > capacity && fitBoard
+    ? `Page ${boardPage % Math.ceil(events.length / capacity) + 1} of ${Math.ceil(events.length / capacity)} - rotates automatically`
+    : ""
   const [selectedEvent, setSelectedEvent] = useState(null)
   const selectedEventLink = webLink(selectedEvent?.location)
   useEffect(() => {
@@ -57,18 +84,17 @@ export default function Dashboard({
     return () => document.removeEventListener("keydown", closeOnEscape)
   }, [selectedEvent])
 
+  const currentEvents = useMemo(() => calendar.events
+    .filter((event) => isHappeningNow(event, now))
+    .sort((first, second) => first.start - second.start), [calendar.events, now])
+
   const todaysEvents = useMemo(() => {
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    const startOfTomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
-    return calendar.events
-      .filter(
-        (event) =>
-          event.start &&
-          event.start < startOfTomorrow &&
-          (event.end ? event.end > startOfToday : event.start >= startOfToday),
-      )
+    const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
+    const laterToday = calendar.events
+      .filter((event) => event.start > now && event.start < tomorrow)
       .sort((first, second) => first.start - second.start)
-  }, [calendar.events, now])
+    return [...currentEvents, ...laterToday]
+  }, [calendar.events, currentEvents, now])
 
   const upcomingDays = useMemo(() => Array.from({ length: 3 }, (_, index) => {
     const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() + index + 1)
@@ -81,68 +107,26 @@ export default function Dashboard({
     return { start, events }
   }), [calendar.events, now])
 
-  const greeting =
-    now.getHours() < 12 ? "Good morning" : now.getHours() < 18 ? "Good Afternoon" : "Good Evening"
-
   return (
     <div className="dashboard dashboard-refresh">
       <header className="dashboard-heading flex items-center justify-between gap-4">
-        <div>
-          <p className="mb-1 mt-0 text-[10px] font-bold uppercase tracking-[.18em] text-[#93445a]">Office of the President</p>
-          <h1 className="m-0 font-[Manrope] text-[28px] font-extrabold tracking-[-.04em] text-[#351923]">Travel Overview</h1>
-        </div>
-        <span className="rounded-full border border-[#e9dde1] bg-white px-4 py-2 text-[11px] font-semibold text-[#795c66]">
-          {now.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
-        </span>
-      </header>
-      <section className="dashboard-welcome relative isolate overflow-hidden rounded-[24px] bg-gradient-to-r from-[#3c0d19] to-[#81243d] px-7 py-7 text-white shadow-[0_18px_45px_#741b3222] max-[640px]:px-5 max-[640px]:py-6">
-        <div className="absolute inset-0 -z-10 bg-[linear-gradient(115deg,#3c0d19,#81243d)]" />
-        <div className="absolute -right-16 -top-24 -z-10 size-72 rounded-full border-[42px] border-white/[.035]" />
-        <div className="flex items-start justify-between gap-6 max-[760px]:flex-col">
+        <div className="board-brand">
+          <img src="/JHCSC_Office_of_the_President_Logo.png" alt="Office of the President" />
           <div>
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[.07] px-3 py-1.5 text-[9px] font-bold uppercase tracking-[.15em] text-[#f4c5d2] backdrop-blur-sm">
-              <i
-                className={`size-1.5 rounded-full ${calendar.connected ? "bg-[#54d9aa] shadow-[0_0_0_4px_#54d9aa20]" : "bg-[#b7a3a8]"}`}
-              />
-              {calendar.loading
-                ? "Synchronizing calendar"
-                : calendar.connected
-                  ? "Calendar live"
-                  : "Calendar offline"}
-            </div>
-            <p className="m-0 text-xs font-medium text-[#e7b9c6]">{greeting}, OP Personnel</p>
-            <h2 className="mb-3 mt-2 max-w-[620px] font-[Manrope] text-[36px] font-extrabold leading-tight tracking-[-.04em] max-[520px]:text-[27px]">
-              Your travels, at a glance.
-            </h2>
-            <p className="m-0 max-w-[580px] text-[12px] leading-relaxed text-[#ecc8d2]">
-              A real-time view of personnel assignments, schedules, and travel coverage.
-            </p>
+          <p className="mb-1 mt-0 text-[10px] font-bold uppercase tracking-[.18em] text-[#93445a]">Office of the President</p>
+          <h1 className="m-0 font-[Manrope] text-[28px] font-extrabold tracking-[-.04em] text-[#351923]">Live Schedule</h1>
           </div>
-          <button
-            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-[11px] border border-white/15 bg-white px-4 py-3 text-[11px] font-bold text-[#590f23] shadow-[0_10px_28px_#240f1445] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
-            onClick={openTravelModal}
-            disabled={!calendar.connected}
-          >
-            <Icon name="plus" size={17} /> Assign Personnel
-          </button>
         </div>
-        <div className="mt-7 flex items-center gap-4 border-t border-white/10 pt-4 text-[12px] text-[#dfacba] max-[520px]:flex-wrap">
-          <span className="font-semibold text-white">
-            {now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+        <div className="dashboard-clock text-right">
+          <strong className="block font-[Manrope] text-[32px] text-[#741b32]">
+            {now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+          </strong>
+          <span>{now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}</span>
+          <span className={`board-connection ${calendar.connected ? "is-connected" : ""}`} role="status">
+            {calendar.loading ? "Synchronizing" : calendar.connected ? "Calendar live" : "Calendar offline"}
           </span>
-          <span className="h-3 w-px bg-white/15" />
-          <span>{calendar.events.length} events synchronized</span>
-          {calendar.lastSync && (
-            <span>
-              Updated{" "}
-              {calendar.lastSync.toLocaleTimeString("en-US", {
-                hour: "numeric",
-                minute: "2-digit",
-              })}
-            </span>
-          )}
         </div>
-      </section>
+      </header>
       {calendar.error && (
         <div className={`${ui.error} dashboard-error`}>
           <span>{calendar.error}</span>
@@ -155,8 +139,9 @@ export default function Dashboard({
         </div>
       )}
       <section className={`${ui.panel} dashboard-today overflow-hidden`} aria-labelledby="happening-now-title">
-        <div className="flex items-center justify-between gap-4 border-b border-[#f5eff1] px-5 py-4">
+        <div className="board-live-heading">
           <div>
+            <span className="board-eyebrow">LIVE SCHEDULE</span>
             <h2
               id="happening-now-title"
               className="m-0 font-[Manrope] text-base font-extrabold text-[#2f1c21]"
@@ -164,21 +149,21 @@ export default function Dashboard({
               Happening now
             </h2>
             <p className="mb-0 mt-1 text-[11px] text-[#958286]">
-              {now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+              Live activities and the rest of today's schedule {pageLabel(todaysEvents, 2) && <span className="board-rotation">{pageLabel(todaysEvents, 2)}</span>}
             </p>
           </div>
-          <span className="rounded-full bg-[#faf2f4] px-3 py-1.5 text-[10px] font-bold text-[#81243d]">
-            {todaysEvents.length} event{todaysEvents.length === 1 ? "" : "s"} today
+          <span className="board-live-count">
+            <i /> {currentEvents.length} event{currentEvents.length === 1 ? "" : "s"} live
           </span>
         </div>
         {todaysEvents.length ? (
-          <div className="grid grid-cols-1 gap-3 p-5">
-            {todaysEvents.map((event, index) => {
+          <div className="dashboard-live-list grid grid-cols-1 gap-3 p-5">
+            {pageEvents(todaysEvents, 2).map((event, index) => {
               const timing = eventTiming(event, now)
               return (
                 <button
                   key={`${event.id}-${event.start?.toISOString()}-${index}`}
-                  className="flex min-w-0 items-start gap-3 rounded-[11px] border border-[#eee6e8] bg-[#fdfafb] p-4 text-left transition hover:border-[#d8a9b6] hover:bg-white hover:shadow-[0_5px_16px_#55313a0d]"
+                  className={`${isHappeningNow(event, now) ? "board-event-live" : "board-event-later"} flex min-w-0 items-start gap-3 rounded-[11px] border border-[#eee6e8] bg-[#fdfafb] p-4 text-left transition hover:border-[#d8a9b6] hover:bg-white hover:shadow-[0_5px_16px_#55313a0d]`}
                   onClick={() => setSelectedEvent(event)}
                 >
                   <span className="grid size-9 shrink-0 place-items-center rounded-[9px] bg-[#f8edf0] text-[#741b32]">
@@ -186,7 +171,7 @@ export default function Dashboard({
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center justify-between gap-2">
-                      <strong className="truncate font-[Manrope] text-[15px] text-[#38252a]">
+                      <strong className="break-words font-[Manrope] text-[15px] text-[#38252a]">
                         {event.title}
                       </strong>
                       <span
@@ -203,7 +188,7 @@ export default function Dashboard({
                           : event.location || "Location not specified"}
                       </span>
                     </span>
-                    <span className="mt-2 block truncate text-[12px] font-medium text-[#695157]">
+                    <span className="mt-2 block break-words text-[12px] font-medium text-[#695157]">
                       {event.personnel?.length
                         ? event.personnel.join(", ")
                         : "No personnel assigned"}
@@ -214,13 +199,12 @@ export default function Dashboard({
             })}
           </div>
         ) : (
-          <div className="flex items-center gap-3 px-5 py-6 text-[11px] text-[#958286]">
-            <span className="grid size-9 place-items-center rounded-full bg-[#faf4f6] text-[#a59297]">
-              <Icon name="calendar" size={17} />
-            </span>
-            {calendar.loading
-              ? "Checking today's calendar…"
-              : "There are no events scheduled for today."}
+          <div className="board-live-empty">
+            <span className="board-empty-icon"><Icon name="calendar" size={25} /></span>
+            <div>
+              <strong>{calendar.loading ? "Checking live activities..." : "No more activities scheduled today"}</strong>
+              <p>{!calendar.connected ? "Connect the calendar to see the latest schedule." : "Upcoming activities are listed below. This board updates automatically."}</p>
+            </div>
           </div>
         )}
       </section>
@@ -228,20 +212,25 @@ export default function Dashboard({
         <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#eee6e8] px-5 py-4">
           <div>
             <h2 id="upcoming-events-title" className="m-0 font-[Manrope] text-base font-extrabold text-[#351923]">Upcoming Events</h2>
-            <p className="mb-0 mt-1 text-[11px] text-[#806c75]">The next three days</p>
+            <p className="mb-0 mt-1 text-[11px] text-[#806c75]">The next three days, starting tomorrow</p>
           </div>
           <span className="rounded-full bg-[#faf2f4] px-3 py-1.5 text-[10px] font-bold text-[#81243d]">
             {upcomingDays[0].start.toLocaleDateString("en-US", { month: "short", day: "numeric" })} - {upcomingDays[2].start.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
           </span>
         </header>
-        <div className="grid grid-cols-3 gap-5 p-5 max-[1000px]:grid-cols-1">
+        <div className="dashboard-days grid grid-cols-3 gap-5 p-5 max-[1000px]:grid-cols-1">
           {upcomingDays.map(({ start, events }) => (
             <section key={start.toISOString()} className="min-w-0">
-              <h3 className="mb-3 mt-0 border-b border-[#eee6e8] pb-3 text-[12px] font-bold text-[#741b32]">
-                {start.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
-              </h3>
-              <div className="space-y-3">
-                {events.length ? events.map((event, index) => (
+              <div className="board-day-heading">
+                <span className="board-day-number">{start.getDate()}</span>
+                <div>
+                  <span className="board-day-label">{start.toLocaleDateString("en-US", { weekday: "long" })}</span>
+                  <h3>{start.toLocaleDateString("en-US", { month: "long", year: "numeric" })}</h3>
+                </div>
+                <span className="board-day-count">{events.length} event{events.length === 1 ? "" : "s"}</span>
+              </div>
+              <div className="board-day-events space-y-3">
+                {events.length ? pageEvents(events, dayCapacity).map((event, index) => (
                   <button key={`${event.id}-${index}`} type="button" onClick={() => setSelectedEvent(event)}
                     className="block w-full rounded-[12px] border border-[#eee6e8] bg-[#fdfafb] p-4 text-left transition hover:border-[#d8a9b6] hover:bg-[#faf2f4]">
                     <span className="mb-2 flex items-center gap-2 text-[10px] font-semibold text-[#93445a]"><Icon name="clock" size={13} />{eventTime(event)}</span>
@@ -249,8 +238,9 @@ export default function Dashboard({
                     <span className="mt-2 block break-words text-[11px] text-[#806c75]">{webLink(event.location) ? "Online meeting" : event.location || "Location not specified"}</span>
                     <span className="mt-2 block break-words text-[11px] text-[#806c75]">{event.personnel?.length ? event.personnel.join(", ") : "No personnel assigned"}</span>
                   </button>
-                )) : <p className="m-0 rounded-[12px] bg-[#fdfafb] p-4 text-[11px] text-[#806c75]">{calendar.loading ? "Checking calendar?" : "No events scheduled."}</p>}
+                )) : <p className="m-0 rounded-[12px] bg-[#fdfafb] p-4 text-[11px] text-[#806c75]">{calendar.loading ? "Checking calendar..." : "No events scheduled."}</p>}
               </div>
+              {pageLabel(events, dayCapacity) && <p className="board-rotation">{pageLabel(events, dayCapacity)}</p>}
             </section>
           ))}
         </div>

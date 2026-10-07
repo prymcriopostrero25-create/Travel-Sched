@@ -500,16 +500,18 @@ export default function App() {
         onClose={() => setSidebarOpen(false)}
         calendar={calendar}
       />
-      <main className="ml-[92px] min-w-0 flex-1 max-[760px]:ml-0">
+      <main className="min-w-0 flex-1">
         <button
-          className={`${ui.iconButton} fixed left-3 top-3 z-20 hidden size-11 !border !border-white/15 !bg-[#481020] !text-white shadow-[0_8px_22px_#48102050] max-[760px]:grid [&_svg]:drop-shadow-[0_1px_1px_#00000055]`}
+          className={`${ui.iconButton} fixed left-3 top-3 z-20 hidden size-11 !border !border-white/15 !bg-[#481020] !text-white shadow-[0_8px_22px_#48102050] max-[1000px]:grid [&_svg]:drop-shadow-[0_1px_1px_#00000055]`}
           onClick={() => setSidebarOpen(true)}
           aria-label="Open navigation"
+          aria-expanded={sidebarOpen}
+          aria-controls="main-sidebar"
         >
           <Icon name="menu" />
         </button>
         <div
-          className={`mx-auto max-w-[1600px] max-[760px]:px-4 max-[760px]:pb-[23px] max-[760px]:pt-[62px] max-[380px]:px-2.5 ${settings.preferences.compactMode ? "px-5 pb-7 pt-3" : "px-8 pb-[46px] pt-[18px]"}`}
+          className={`${activePage === "Dashboard" ? "dashboard-viewport" : ""} mx-auto max-w-[2400px] max-[760px]:px-4 max-[760px]:pb-[23px] max-[760px]:pt-[62px] max-[380px]:px-2.5 ${settings.preferences.compactMode ? "px-5 pb-7 pt-3" : "px-8 pb-[46px] pt-[18px]"}`}
         >
           <ActivePage
             onNavigate={navigate}

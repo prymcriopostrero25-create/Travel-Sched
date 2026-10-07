@@ -11,12 +11,13 @@ const menu = [
 export default function Sidebar({ activePage, setActivePage, open, onClose, calendar }) {
   const connected = calendar.connected
   return (
-    <>
+    <div className="sidebar-reveal">
+      <button type="button" className="sidebar-edge-trigger" aria-label="Reveal navigation" />
       <div
-        className={`fixed inset-0 z-25 bg-[#1b0c10cc] backdrop-blur-sm transition-all duration-500 min-[761px]:hidden ${open ? "opacity-100" : "pointer-events-none opacity-0 backdrop-blur-none"}`}
+        className={`fixed inset-0 z-25 bg-[#1b0c10cc] backdrop-blur-sm transition-all duration-500 min-[1001px]:hidden ${open ? "opacity-100" : "pointer-events-none opacity-0 backdrop-blur-none"}`}
         onClick={onClose}
       />
-      <aside className={`sidebar-shell fixed inset-y-0 left-0 z-30 flex w-[260px] flex-col overflow-hidden border-r border-white/[.07] bg-gradient-to-br from-[#3c0d19] to-[#81243d] px-4 pb-[18px] text-white shadow-[18px_0_60px_#230f1428] transition-transform duration-500 ease-[cubic-bezier(.22,1,.36,1)] max-[760px]:-translate-x-[108%] ${open ? "max-[760px]:translate-x-0" : ""}`}>
+      <aside id="main-sidebar" className={`sidebar-shell fixed inset-y-0 left-0 z-30 flex w-[260px] flex-col overflow-hidden border-r border-white/[.07] bg-gradient-to-br from-[#3c0d19] to-[#81243d] px-4 pb-[18px] text-white shadow-[18px_0_60px_#230f1428] transition-transform duration-500 ease-[cubic-bezier(.22,1,.36,1)] max-[1000px]:-translate-x-[108%] ${open ? "max-[1000px]:translate-x-0" : ""}`}>
         <div className="sidebar-aurora pointer-events-none absolute -left-24 -top-32 size-72 rounded-full bg-[#741b32]/25 blur-[65px]" />
         <div className="sidebar-aurora-delayed pointer-events-none absolute -right-28 top-[38%] size-64 rounded-full bg-[#a54b63]/15 blur-[75px]" />
         <div className="pointer-events-none absolute inset-0 opacity-[.035] [background-image:linear-gradient(#fff_1px,transparent_1px),linear-gradient(90deg,#fff_1px,transparent_1px)] [background-size:32px_32px]" />
@@ -29,7 +30,7 @@ export default function Sidebar({ activePage, setActivePage, open, onClose, cale
           <div className="min-w-0 [&_strong]:block [&_strong]:font-[Manrope] [&_strong]:text-[17px] [&_strong]:tracking-[-.02em] [&_span]:mt-0.5 [&_span]:block [&_span]:text-[9px] [&_span]:uppercase [&_span]:tracking-[.11em] [&_span]:text-[#c398a4]">
             <strong>Travel Scheduler</strong><span>Personnel Management</span>
           </div>
-          <button className={`${ui.iconButton} ml-auto hidden !bg-white/[.06] !text-[#d0b8be] hover:!rotate-90 hover:!bg-white/[.12] hover:!text-white max-[760px]:grid`} onClick={onClose} aria-label="Close navigation">
+          <button className={`${ui.iconButton} ml-auto hidden !bg-white/[.06] !text-[#d0b8be] hover:!rotate-90 hover:!bg-white/[.12] hover:!text-white max-[1000px]:grid`} onClick={onClose} aria-label="Close navigation">
             <Icon name="close" />
           </button>
         </div>
@@ -74,7 +75,7 @@ export default function Sidebar({ activePage, setActivePage, open, onClose, cale
           </p>
           <span className="relative text-[9px] text-[#c398a4]">
             <i className={`mr-[6px] inline-block size-1.5 rounded-full ${connected ? "sidebar-live-dot bg-[#37c992]" : "bg-[#a69095]"}`} />
-            {calendar.loading ? "Syncing…" : connected ? "Synced this session" : "Setup required"}
+            {calendar.loading ? "Syncingâ€¦" : connected ? "Synced this session" : "Setup required"}
           </span>
         </div>
 
@@ -86,6 +87,6 @@ export default function Sidebar({ activePage, setActivePage, open, onClose, cale
           <span className="text-[#765b62] transition-transform group-hover:translate-x-0.5 group-hover:text-[#c49fa8]"><Icon name="chevron" size={15} /></span>
         </div>
       </aside>
-    </>
+    </div>
   )
 }
