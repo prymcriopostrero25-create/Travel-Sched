@@ -67,7 +67,7 @@ export default function Dashboard({
     const grid = upcomingGrid.current
     const measure = () => {
       const column = grid.querySelector(".board-day-events")
-      if (column) setDayCapacity(Math.max(1, Math.min(2, Math.floor((column.clientHeight + 10) / 170))))
+      if (column) setDayCapacity(Math.max(1, Math.min(2, Math.floor((column.clientHeight + 10) / 200))))
     }
     const observer = new ResizeObserver(measure)
     observer.observe(grid)

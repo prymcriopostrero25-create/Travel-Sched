@@ -332,6 +332,38 @@
   .dashboard-live-list button strong { font-size: 20px; }
   .dashboard-upcoming > header { padding: 10px 20px; }
   .dashboard-days { padding: 12px 18px; }
-  .board-day-events > button { flex: 0 0 auto; min-height: 150px; }
+  .board-day-events > button { flex: 1 1 0; min-height: 150px; }
   .board-day-heading { margin-bottom: 10px; padding-bottom: 8px; }
+}
+
+/* Stretch the schedule into the extra space provided by fullscreen. */
+@media (min-width: 1001px) {
+  .dashboard-days { grid-template-rows: minmax(0, 1fr); align-items: stretch; }
+  .dashboard-days .board-day-events > button {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+    padding: clamp(12px, 1.8vh, 22px);
+    gap: 6px;
+  }
+  .dashboard-days .board-day-events > button strong {
+    flex-shrink: 0;
+    font-size: clamp(18px, 2.15vh, 24px);
+    line-height: 1.35;
+  }
+  .dashboard-days .board-day-events > button > span {
+    flex-shrink: 0;
+    margin: 0;
+    font-size: clamp(13px, 1.6vh, 17px);
+    line-height: 1.4;
+  }
+  .board-day-events > p {
+    flex: 1;
+    display: grid;
+    place-items: center;
+    text-align: center;
+    border: 1px dashed #e5dbe0;
+    border-radius: 10px;
+  }
 }
