@@ -328,6 +328,7 @@ export function normalizeCalendarEvent(event, colorContext = {}) {
 
     htmlLink: event.htmlLink,
 
+    colorId: event.colorId || "",
     color,
   }
 }

@@ -1,22 +1,11 @@
 import { useEffect, useState } from "react"
 import Icon from "./Icon"
 import { ui } from "../styles"
+import { GOOGLE_EVENT_COLORS, displayEventColor } from "../eventColors"
 const DAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"],
   COLORS = ["green", "blue", "violet", "orange"],
   MAX_EVENT_ROWS = 3
-const GOOGLE_EVENT_COLORS = [
-  { id: "1", name: "Lavender", background: "#bb8492", foreground: "#ffffff" },
-  { id: "2", name: "Sage", background: "#33b679", foreground: "#ffffff" },
-  { id: "3", name: "Grape", background: "#8e24aa", foreground: "#ffffff" },
-  { id: "4", name: "Flamingo", background: "#e67c73", foreground: "#1f1f1f" },
-  { id: "5", name: "Banana", background: "#f6bf26", foreground: "#1f1f1f" },
-  { id: "6", name: "Tangerine", background: "#f4511e", foreground: "#ffffff" },
-  { id: "7", name: "Peacock", background: "#e5426b", foreground: "#ffffff" },
-  { id: "8", name: "Graphite", background: "#616161", foreground: "#ffffff" },
-  { id: "9", name: "Blueberry", background: "#a7586c", foreground: "#ffffff" },
-  { id: "10", name: "Basil", background: "#0b8043", foreground: "#ffffff" },
-  { id: "11", name: "Tomato", background: "#d50000", foreground: "#ffffff" },
-]
+
 const dateKey = (date) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
 const startOfDay = (date) => new Date(date.getFullYear(), date.getMonth(), date.getDate())
@@ -70,23 +59,20 @@ const detailColor = (color) =>
   ({ green: "bg-[#43aa78]", blue: "bg-[#944059]", violet: "bg-[#b97183]", orange: "bg-[#dd8c32]" })[
     color
   ]
-// Render blue calendar colors in the app palette without changing their Google IDs.
-const calendarDisplayColor = (value) => {
-  const match = /^#([0-9a-f]{6})$/i.exec(value || "")
-  if (!match) return value
-  const [r, g, b] = [0, 2, 4].map((offset) => parseInt(match[1].slice(offset, offset + 2), 16))
-  return b > r && b >= g && b - r > 15 ? "#81243d" : value
-}
-const googleColorStyle = (event) =>
-  event.color?.background
+const googleColorStyle = (event) => {
+  const color = displayEventColor(event)
+  return color?.background
     ? {
-        backgroundColor: calendarDisplayColor(event.color.background),
-        borderLeftColor: calendarDisplayColor(event.color.background),
-        color: event.color.foreground || "#ffffff",
+        backgroundColor: color.background,
+        borderLeftColor: color.background,
+        color: color.foreground || "#ffffff",
       }
     : undefined
-const detailColorStyle = (event) =>
-  event.color?.background ? { backgroundColor: calendarDisplayColor(event.color.background) } : undefined
+}
+const detailColorStyle = (event) => {
+  const color = displayEventColor(event)
+  return color?.background ? { backgroundColor: color.background } : undefined
+}
 export default function TravelCalendar({
   events = [],
   loading,
@@ -412,7 +398,7 @@ export default function TravelCalendar({
                     {visibleEvents.map((entry, index) => (
                       <button
                         key={`${entry.event.id}-${entry.event.start?.toISOString()}-${index}`}
-                        className={`event absolute left-0 h-[25px] overflow-hidden text-ellipsis whitespace-nowrap rounded-r-[6px] rounded-l-[3px] border-0 border-l-[3px] px-2 py-1 text-left text-[10px] font-bold shadow-[0_2px_5px_#55313a0a] transition [&_span]:mr-[5px] [&_span]:font-medium [&_span]:opacity-70 ${entry.event.color?.background ? "brightness-100 hover:brightness-95" : eventColor(colorForEvent(entry.event))} ${entry.span > 1 ? "z-[4] max-w-none w-[calc(var(--day-span)*(100%+20px)-20px)]" : "z-[5] w-full max-w-full"}`}
+                        className={`event absolute left-0 h-[25px] overflow-hidden text-ellipsis whitespace-nowrap rounded-r-[6px] rounded-l-[3px] border-0 border-l-[3px] px-2 py-1 text-left text-[10px] font-bold shadow-[0_2px_5px_#55313a0a] transition [&_span]:mr-[5px] [&_span]:font-medium [&_span]:opacity-70 ${displayEventColor(entry.event)?.background ? "brightness-100 hover:brightness-95" : eventColor(colorForEvent(entry.event))} ${entry.span > 1 ? "z-[4] max-w-none w-[calc(var(--day-span)*(100%+20px)-20px)]" : "z-[5] w-full max-w-full"}`}
                         style={{
                           "--day-span": entry.span,
                           top: `${entry.lane * 29}px`,
@@ -746,7 +732,7 @@ export default function TravelCalendar({
                     className={`grid grid-cols-[5px_1fr] gap-4 rounded-[14px] border border-transparent p-5 transition hover:border-[#f3e9eb] hover:bg-[#fcf7f8] max-[520px]:gap-3 max-[520px]:p-3 ${selected.active === event ? "border-[#f7e4e8] bg-[#faf1f4] shadow-[0_5px_16px_#55313a0b]" : ""}`}
                   >
                     <span
-                      className={`rounded ${event.color?.background ? "" : detailColor(COLORS[index % 4])}`}
+                      className={`rounded ${displayEventColor(event)?.background ? "" : detailColor(COLORS[index % 4])}`}
                       style={detailColorStyle(event)}
                     />
                     <div className="[&_p]:my-[9px] [&_p]:flex [&_p]:items-center [&_p]:gap-[9px] [&_p]:text-xs [&_p]:text-[#8a777b] [&_p:nth-of-type(2)]:hidden [&_p_svg]:size-[18px]">
