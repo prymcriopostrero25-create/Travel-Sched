@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto"
 import { Buffer } from "node:buffer"
 import { defineConfig, loadEnv } from "vite"
 import react from "@vitejs/plugin-react"
@@ -118,15 +119,23 @@ function appsScriptMiddleware(endpoint) {
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, ".", "")
   const appsScriptUrl = env.VITE_GOOGLE_APPS_SCRIPT_URL
+  const buildId = randomUUID()
 
   return {
+    define: { __APP_BUILD_ID__: JSON.stringify(buildId) },
     server: {
       watch: {
         usePolling: true,
         interval: 300,
       },
     },
-    plugins: [react(), tailwindcss(), appsScriptUrl && appsScriptMiddleware(appsScriptUrl)].filter(
+    plugins: [react(), tailwindcss(), {
+      name: "deployment-version",
+      apply: "build",
+      generateBundle() {
+        this.emitFile({ type: "asset", fileName: "version.json", source: JSON.stringify({ buildId }) })
+      },
+    }, appsScriptUrl && appsScriptMiddleware(appsScriptUrl)].filter(
       Boolean,
     ),
   }

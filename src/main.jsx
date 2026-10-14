@@ -2,6 +2,9 @@ import { Component, StrictMode } from "react"
 import { createRoot } from "react-dom/client"
 import "./index.css"
 import App from "./App.jsx"
+import { startDeploymentReload } from "./services/deploymentReload.js"
+
+if (import.meta.env.PROD) startDeploymentReload(import.meta.env.BASE_URL, __APP_BUILD_ID__)
 
 class AppErrorBoundary extends Component {
   state = { error: null }
