@@ -86,7 +86,7 @@ export default function Sidebar({ activePage, setActivePage, open, onClose, cale
           </div>
           <div className="min-w-0 flex-1 [&_strong]:block [&_strong]:leading-normal [&_strong]:text-[10px] [&_span]:mt-[3px] [&_span]:block [&_span]:text-[9px] [&_span]:text-[#c398a4]">
             <strong>CREATED BY</strong><span>Von Francis La Victoria<br />Prym Crio Postrero</span>
-            <p className="mb-0 mt-2 text-[9px] leading-relaxed text-[#c398a4]">Partnership with CHED-OCDRA & JHCSC</p>
+            <p className="mb-0 mt-2 text-[9px] leading-relaxed text-[#c398a4]">Partnership of CHED-OCDRA & JHCSC</p>
           </div>
           <span className="text-[#765b62] transition-transform group-hover:translate-x-0.5 group-hover:text-[#c49fa8]"><Icon name="chevron" size={15} /></span>
         </div>
